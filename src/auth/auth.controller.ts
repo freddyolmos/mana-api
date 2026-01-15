@@ -20,7 +20,7 @@ export class AuthController {
     return this.auth.refresh(dto);
   }
 
-  @ApiBearerAuth()
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   logout(@Req() req: Request & { user: { userId: number } }) {
