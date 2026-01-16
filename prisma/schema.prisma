@@ -12,16 +12,24 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  ADMIN
+  CASHIER
+  KITCHEN
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  isActive  Boolean  @default(true)
+  id       Int     @id @default(autoincrement())
+  name     String
+  email    String  @unique
+  password String
+  isActive Boolean @default(true)
+
+  role UserRole @default(ADMIN)
 
   refreshTokenHash String?
   refreshTokenExp  DateTime?
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

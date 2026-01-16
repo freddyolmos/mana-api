@@ -34,7 +34,7 @@ export class AuthService {
     const ok = await bcrypt.compare(dto.password, user.password);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
 
-    return this.issueTokens(user.id, user.email);
+    return this.issueTokens(user.id, user.email, user.role);
   }
 
   async refresh(dto: RefreshDto) {
@@ -68,7 +68,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    return this.issueTokens(user.id, user.email);
+    return this.issueTokens(user.id, user.email, user.role);
   }
 
   async logout(userId: number) {
@@ -79,10 +79,10 @@ export class AuthService {
     return { ok: true };
   }
 
-  private async issueTokens(userId: number, email: string) {
+  private async issueTokens(userId: number, email: string, role: string) {
     // @ts-expect-error - expiresIn type incompatibility with @nestjs/jwt
     const accessToken = await this.jwtService.signAsync(
-      { sub: userId, email },
+      { sub: userId, email, role },
       {
         secret: this.configService.get<string>('JWT_SECRET')!,
         expiresIn: this.configService.get<string>('JWT_EXPIRES_IN') ?? '15m',
@@ -91,7 +91,7 @@ export class AuthService {
 
     // @ts-expect-error - expiresIn type incompatibility with @nestjs/jwt
     const refreshToken = await this.jwtService.signAsync(
-      { sub: userId, email },
+      { sub: userId, email, role },
       {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET')!,
         expiresIn:
