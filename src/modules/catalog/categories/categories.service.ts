@@ -70,4 +70,13 @@ export class CategoriesService {
       },
     });
   }
+
+  async toggleActive(id: number) {
+    const category = await this.findOne(id);
+
+    return this.prisma.category.update({
+      where: { id },
+      data: { isActive: !category.isActive },
+    });
+  }
 }

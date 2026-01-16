@@ -59,4 +59,13 @@ export class CategoriesController {
   ) {
     return this.categoriesService.update(id, dto);
   }
+
+  @ApiOperation({ summary: 'Active/Inactive Toggle' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @Patch(':id/toggle-active')
+  toggleActive(@Param('id', ParseIntPipe) id: number) {
+    return this.categoriesService.toggleActive(id);
+  }
 }
