@@ -6,6 +6,7 @@ import {
   Query,
   Param,
   ParseIntPipe,
+  Patch,
 } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
@@ -16,6 +17,7 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/constants/roles';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { QueryCategoriesDto } from './dto/query-categories.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Controller('categories')
 export class CategoriesController {
@@ -44,5 +46,17 @@ export class CategoriesController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.categoriesService.findOne(id);
+  }
+
+  @ApiOperation({ summary: 'Update category' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @Patch(':id')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateCategoryDto,
+  ) {
+    return this.categoriesService.update(id, dto);
   }
 }
