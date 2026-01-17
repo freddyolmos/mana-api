@@ -33,3 +33,94 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// --- CATALOG MODEL ---
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+
+  products  Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("categories")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  imageUrl    String?
+  price       Decimal  @db.Decimal(10, 2)
+  isActive    Boolean  @default(true)
+
+  categoryId  Int
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  modifierGroups ProductModifierGroup[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@unique([categoryId, name])
+  @@map("products")
+}
+
+model ModifierGroup {
+  id        Int     @id @default(autoincrement())
+  name      String  @unique
+
+  required  Boolean @default(false)
+  minSelect Int     @default(0)
+  maxSelect Int     @default(1)
+  multi     Boolean @default(false)
+
+  isActive  Boolean @default(true)
+
+  options   ModifierOption[]
+  products  ProductModifierGroup[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("modifier_groups")
+}
+
+model ModifierOption {
+  id         Int           @id @default(autoincrement())
+  name       String
+  priceDelta Decimal       @db.Decimal(10, 2) @default(0.00)
+  isActive   Boolean       @default(true)
+
+  groupId    Int
+  group      ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([groupId])
+  @@unique([groupId, name])
+  @@map("modifier_options")
+}
+
+model ProductModifierGroup {
+  id        Int @id @default(autoincrement())
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  groupId   Int
+  group     ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  sortOrder Int @default(0)
+
+  @@unique([productId, groupId])
+  @@index([groupId])
+  @@map("product_modifier_groups")
+}
+
