@@ -19,11 +19,11 @@ import { RolesGuard } from '../../../common/guards/roles.guard';
 
 @ApiTags('Modifier Options')
 @Controller('modifier-options')
+@ApiBearerAuth('access-token')
 export class ModifierOptionsController {
   constructor(private readonly service: ModifierOptionsService) {}
 
   @ApiOperation({ summary: 'Create modifier option' })
-  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Post()
@@ -32,7 +32,6 @@ export class ModifierOptionsController {
   }
 
   @ApiOperation({ summary: 'Update modifier option' })
-  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Patch(':id')
@@ -44,7 +43,6 @@ export class ModifierOptionsController {
   }
 
   @ApiOperation({ summary: 'Toggle active/inactive' })
-  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Patch(':id/toggle-active')

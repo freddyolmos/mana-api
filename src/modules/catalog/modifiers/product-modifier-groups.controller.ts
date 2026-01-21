@@ -19,11 +19,11 @@ import { RolesGuard } from '../../../common/guards/roles.guard';
 
 @ApiTags('Product Modifier Groups')
 @Controller('products/:productId/modifier-groups')
+@ApiBearerAuth('access-token')
 export class ProductModifierGroupsController {
   constructor(private readonly service: ProductModifierGroupsService) {}
 
   @ApiOperation({ summary: 'Assign group to product' })
-  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Post()
@@ -35,13 +35,13 @@ export class ProductModifierGroupsController {
   }
 
   @ApiOperation({ summary: 'List groups (and options) for product' })
+  @UseGuards(JwtAuthGuard)
   @Get()
   list(@Param('productId', ParseIntPipe) productId: number) {
     return this.service.listForProduct(productId);
   }
 
   @ApiOperation({ summary: 'Remove product group' })
-  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Delete(':groupId')
