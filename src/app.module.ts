@@ -6,6 +6,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { CategoriesModule } from './modules/catalog/categories/categories.module';
+import { ProductsModule } from './modules/catalog/products/products.module';
+import { ModifiersModule } from './modules/catalog/modifiers/modifiers.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -18,6 +20,8 @@ import configuration from './config/configuration';
     PrismaModule,
     AuthModule,
     CategoriesModule,
+    ProductsModule,
+    ModifiersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

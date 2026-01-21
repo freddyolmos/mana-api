@@ -13,11 +13,8 @@ function toBool(value: unknown): boolean | undefined {
   return undefined;
 }
 
-export class QueryCategoriesDto {
-  @ApiPropertyOptional({
-    example: true,
-    description: 'Filtrar por activas/inactivas',
-  })
+export class QueryModifierGroupsDto {
+  @ApiPropertyOptional({ example: true })
   @IsOptional()
   @Transform(({ value }) => toBool(value))
   @IsBoolean()
