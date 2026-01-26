@@ -18,6 +18,26 @@ enum UserRole {
   KITCHEN
 }
 
+enum OrderType {
+  DINE_IN
+  TAKEOUT
+  DELIVERY
+}
+
+enum OrderStatus {
+  OPEN
+  SENT_TO_KITCHEN
+  CLOSED
+  CANCELED
+}
+
+enum OrderItemStatus {
+  PENDING
+  IN_PROGRESS
+  READY
+  CANCELED
+}
+
 model User {
   id       Int     @id @default(autoincrement())
   name     String
@@ -29,6 +49,8 @@ model User {
 
   refreshTokenHash String?
   refreshTokenExp  DateTime?
+
+  orders Order[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -63,6 +85,8 @@ model Product {
 
   modifierGroups ProductModifierGroup[]
 
+  ordersItem OrderItem[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -85,6 +109,8 @@ model ModifierGroup {
   options   ModifierOption[]
   products  ProductModifierGroup[]
 
+  modifiers OrderItemModifier[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -99,6 +125,8 @@ model ModifierOption {
 
   groupId    Int
   group      ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  modifiers OrderItemModifier[]
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -124,3 +152,76 @@ model ProductModifierGroup {
   @@map("product_modifier_groups")
 }
 
+// --- ORDER MODEL ---
+
+model Order {
+  id        Int        @id @default(autoincrement())
+  type      OrderType
+  status    OrderStatus @default(OPEN)
+
+  notes     String?
+
+  subtotal  Decimal     @db.Decimal(10, 2) @default(0.00)
+  total     Decimal     @db.Decimal(10, 2) @default(0.00)
+
+  createdById Int?
+  createdBy   User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  items     OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([type])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        Int            @id @default(autoincrement())
+
+  orderId   Int
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product   Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  qty       Int
+  status    OrderItemStatus @default(PENDING)
+  notes     String?
+
+  // snapshot
+  unitPrice Decimal        @db.Decimal(10, 2)
+  modifiersTotal Decimal   @db.Decimal(10, 2) @default(0.00)
+  lineTotal Decimal        @db.Decimal(10, 2) @default(0.00)
+
+  modifiers OrderItemModifier[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model OrderItemModifier {
+  id          Int @id @default(autoincrement())
+
+  orderItemId Int
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  groupId     Int
+  group       ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
+
+  optionId    Int
+  option      ModifierOption @relation(fields: [optionId], references: [id], onDelete: Restrict)
+
+  priceDeltaSnapshot Decimal @db.Decimal(10, 2)
+
+  @@index([orderItemId])
+  @@index([groupId])
+  @@index([optionId])
+  @@unique([orderItemId, optionId])
+  @@map("order_item_modifiers")
+}
