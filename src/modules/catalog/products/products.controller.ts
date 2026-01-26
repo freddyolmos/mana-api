@@ -7,10 +7,10 @@ import {
   Post,
   Query,
   Patch,
+  UseGuards,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -21,13 +21,11 @@ import { UpdateProductDto } from './dto/update-product.dto';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Products')
-@Controller('catalog/products')
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @ApiOperation({ summary: 'Create a new product' })
-  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Post()
@@ -48,7 +46,6 @@ export class ProductsController {
   }
 
   @ApiOperation({ summary: 'Update product' })
-  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Patch(':id')
@@ -57,7 +54,6 @@ export class ProductsController {
   }
 
   @ApiOperation({ summary: 'Toggle active/inactive' })
-  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Patch(':id/toggle-active')
