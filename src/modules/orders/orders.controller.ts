@@ -17,6 +17,8 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/constants/roles';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from 'src/common/types/user.types';
 
 @ApiTags('Orders')
 @ApiBearerAuth('access-token')
@@ -28,8 +30,8 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Post()
-  create(@Body() dto: CreateOrderDto) {
-    return this.ordersService.create(dto);
+  create(@Body() dto: CreateOrderDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.ordersService.create(dto, user.userId);
   }
 
   @ApiOperation({ summary: 'List complet order' })

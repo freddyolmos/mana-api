@@ -61,30 +61,41 @@ export class OrdersService {
       throw new BadRequestException('Producto inválido o inactivo.');
 
     const modifiers = dto.modifiers ?? [];
-    const groupIds = modifiers.map((m) => m.groupId);
+    const sentGroupIds = modifiers.map((m) => m.groupId);
 
-    if (groupIds.length) {
-      const assigned = await this.prisma.productModifierGroup.findMany({
-        where: { productId: dto.productId, groupId: { in: groupIds } },
-        select: { groupId: true },
-      });
-      const assignedSet = new Set(assigned.map((a) => a.groupId));
-      const notAssigned = groupIds.filter((gid) => !assignedSet.has(gid));
-      if (notAssigned.length) {
-        throw new BadRequestException(
-          `Hay grupos no asignados al producto: ${notAssigned.join(', ')}`,
-        );
-      }
+    const assigned = await this.prisma.productModifierGroup.findMany({
+      where: { productId: dto.productId },
+      select: { groupId: true },
+    });
+    const assignedGroupIds = assigned.map((a) => a.groupId);
+    const assignedSet = new Set(assignedGroupIds);
+
+    // B) Verificar que los grupos enviados sí estén asignados al producto
+    const notAssigned = sentGroupIds.filter((gid) => !assignedSet.has(gid));
+    if (notAssigned.length) {
+      throw new BadRequestException(
+        `Hay grupos no asignados al producto: ${notAssigned.join(', ')}`,
+      );
     }
 
-    const groups = groupIds.length
+    const groups = assignedGroupIds.length
       ? await this.prisma.modifierGroup.findMany({
-          where: { id: { in: groupIds }, isActive: true },
+          where: { id: { in: assignedGroupIds }, isActive: true },
           include: { options: { where: { isActive: true } } },
         })
       : [];
 
     const groupMap = new Map(groups.map((g) => [g.id, g]));
+
+    const sentSet = new Set(sentGroupIds);
+    const requiredMissing = groups
+      .filter((g) => g.required)
+      .filter((g) => !sentSet.has(g.id));
+
+    if (requiredMissing.length) {
+      const names = requiredMissing.map((g) => g.name).join(', ');
+      throw new BadRequestException(`Faltan grupos requeridos: ${names}`);
+    }
 
     let modifiersTotal = new Prisma.Decimal(0);
     const modifierRows: Array<{

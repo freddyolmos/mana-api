@@ -34,7 +34,6 @@ export class QueryProductsDto {
   isActive?: boolean;
 
   @ApiPropertyOptional({
-    example: 'hamb',
     description: 'Búsqueda por nombre (contains, case-insensitive)',
   })
   @IsOptional()
