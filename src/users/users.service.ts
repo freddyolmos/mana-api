@@ -4,6 +4,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { hashPassword } from '../common/utils/hash.util';
 import { Prisma } from '@prisma/client';
+import { UserResponseDto } from './dto/user-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class UsersService {
@@ -19,8 +21,8 @@ export class UsersService {
     });
   }
 
-  findAll() {
-    return this.prisma.user.findMany({
+  async findAll() {
+    const users = await this.prisma.user.findMany({
       select: {
         id: true,
         name: true,
@@ -30,7 +32,11 @@ export class UsersService {
         createdAt: true,
         updatedAt: true,
       },
+      orderBy: {
+        id: 'asc',
+      },
     });
+    return users.map((user) => plainToInstance(UserResponseDto, user));
   }
 
   async findOne(id: number) {
@@ -46,9 +52,8 @@ export class UsersService {
         updatedAt: true,
       },
     });
-    console.log(user);
     if (!user) throw new NotFoundException('User not found');
-    return user;
+    return plainToInstance(UserResponseDto, user);
   }
 
   async update(id: number, dto: UpdateUserDto) {

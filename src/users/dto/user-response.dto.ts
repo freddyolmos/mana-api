@@ -19,10 +19,14 @@ export class UserResponseDto {
   isActive: boolean;
 
   @ApiProperty({ example: '2026-01-27T18:30:00.000Z' })
-  @Transform(({ value }) => value.toISOString())
+  @Transform(({ value }: { value: Date | string }) =>
+    value instanceof Date ? value.toISOString() : value,
+  )
   createdAt: string;
 
   @ApiProperty({ example: '2026-01-27T18:30:00.000Z' })
-  @Transform(({ value }) => value.toISOString())
+  @Transform(({ value }: { value: Date | string }) =>
+    value instanceof Date ? value.toISOString() : value,
+  )
   updatedAt: string;
 }
