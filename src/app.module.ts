@@ -9,6 +9,7 @@ import { CategoriesModule } from './modules/catalog/categories/categories.module
 import { ProductsModule } from './modules/catalog/products/products.module';
 import { ModifiersModule } from './modules/catalog/modifiers/modifiers.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { KitchenModule } from './modules/kitchen/kitchen.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -24,6 +25,7 @@ import configuration from './config/configuration';
     ProductsModule,
     ModifiersModule,
     OrdersModule,
+    KitchenModule,
   ],
   controllers: [AppController],
   providers: [AppService],

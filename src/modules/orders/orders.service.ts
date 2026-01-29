@@ -8,10 +8,14 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { AddOrderItemDto } from './dto/add-order-item.dto';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
 import { OrderStatus, Prisma } from '@prisma/client';
+import { KitchenService } from '../kitchen/kitchen.service';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly kitchenService: KitchenService,
+  ) {}
 
   async create(dto: CreateOrderDto, createdById?: number) {
     return this.prisma.order.create({
@@ -401,9 +405,23 @@ export class OrdersService {
       );
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { status: OrderStatus.SENT_TO_KITCHEN },
     });
+    const orderDetail = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: {
+          orderBy: { id: 'asc' },
+          include: {
+            product: true,
+            modifiers: { include: { group: true, option: true } },
+          },
+        },
+      },
+    });
+    this.kitchenService.broadcastOrderSent(orderDetail ?? updated);
+    return updated;
   }
 }

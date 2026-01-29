@@ -1,0 +1,112 @@
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { OrderItemStatus, OrderStatus } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
+import { QueryKitchenOrdersDto } from './dto/query-kitchen-orders.dto';
+import { UpdateKitchenItemDto } from './dto/update-kitchen-item.dto';
+import { KitchenGateway } from './kitchen.gateway';
+
+const allowedTransitions: Record<OrderItemStatus, OrderItemStatus[]> = {
+  PENDING: [OrderItemStatus.IN_PROGRESS],
+  IN_PROGRESS: [OrderItemStatus.READY],
+  READY: [],
+  CANCELED: [],
+};
+
+@Injectable()
+export class KitchenService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly kitchenGateway: KitchenGateway,
+  ) {}
+
+  async listKitchenOrders(query: QueryKitchenOrdersDto) {
+    const status = query.status ?? OrderStatus.SENT_TO_KITCHEN;
+    return this.prisma.order.findMany({
+      where: { status },
+      orderBy: { id: 'asc' },
+      include: {
+        items: {
+          orderBy: { id: 'asc' },
+          include: {
+            product: true,
+            modifiers: { include: { group: true, option: true } },
+          },
+        },
+      },
+    });
+  }
+
+  async getKitchenOrder(orderId: number) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: {
+          orderBy: { id: 'asc' },
+          include: {
+            product: true,
+            modifiers: { include: { group: true, option: true } },
+          },
+        },
+      },
+    });
+    if (!order) throw new NotFoundException('Orden no encontrada.');
+    if (order.status !== OrderStatus.SENT_TO_KITCHEN) {
+      throw new BadRequestException('La orden no está en cocina.');
+    }
+    return order;
+  }
+
+  async updateKitchenItemStatus(
+    orderId: number,
+    itemId: number,
+    dto: UpdateKitchenItemDto,
+  ) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, status: true },
+    });
+    if (!order) throw new NotFoundException('Orden no encontrada.');
+    if (order.status !== OrderStatus.SENT_TO_KITCHEN) {
+      throw new BadRequestException('La orden no está en cocina.');
+    }
+
+    const item = await this.prisma.orderItem.findUnique({
+      where: { id: itemId },
+      select: { id: true, orderId: true, status: true },
+    });
+    if (!item || item.orderId !== orderId) {
+      throw new NotFoundException('Item no encontrado en esta orden.');
+    }
+
+    const allowed = allowedTransitions[item.status] ?? [];
+    if (!allowed.includes(dto.status)) {
+      throw new BadRequestException(
+        `Transición inválida: ${item.status} -> ${dto.status}`,
+      );
+    }
+
+    const updated = await this.prisma.orderItem.update({
+      where: { id: itemId },
+      data: { status: dto.status },
+      include: {
+        product: true,
+        modifiers: { include: { group: true, option: true } },
+      },
+    });
+
+    this.kitchenGateway.broadcastItemUpdated({
+      orderId,
+      item: updated,
+    });
+
+    return updated;
+  }
+
+  broadcastOrderSent(payload: unknown) {
+    this.kitchenGateway.broadcastOrderSent(payload);
+  }
+}
