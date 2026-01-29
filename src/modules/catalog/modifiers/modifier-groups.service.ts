@@ -59,6 +59,7 @@ export class ModifierGroupsService {
         maxSelect: fixed.maxSelect,
         multi: fixed.multi,
       },
+      include: { options: true },
     });
   }
 
@@ -113,6 +114,7 @@ export class ModifierGroupsService {
         multi: fixed.multi,
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
       },
+      include: { options: true },
     });
   }
 
@@ -126,6 +128,7 @@ export class ModifierGroupsService {
     return this.prisma.modifierGroup.update({
       where: { id },
       data: { isActive: !group.isActive },
+      include: { options: true },
     });
   }
 }

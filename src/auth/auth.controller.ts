@@ -1,10 +1,11 @@
-import { Body, Controller, Post, Req, UseGuards, Get } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { AuthenticatedUser } from '../common/types/user.types';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -14,8 +15,8 @@ export class AuthController {
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@Req() req: { user: AuthenticatedUser }): AuthenticatedUser {
-    return req.user;
+  me(@CurrentUser() user: AuthenticatedUser): AuthenticatedUser {
+    return user;
   }
 
   @Post('login')
@@ -31,7 +32,7 @@ export class AuthController {
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  logout(@Req() req: { user: AuthenticatedUser }) {
-    return this.auth.logout(req.user.userId);
+  logout(@CurrentUser() user: AuthenticatedUser) {
+    return this.auth.logout(user.userId);
   }
 }

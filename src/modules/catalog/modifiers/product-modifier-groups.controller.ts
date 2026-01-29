@@ -8,7 +8,13 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ProductModifierGroupsService } from './product-modifier-groups.service';
 import { AttachModifierGroupDto } from './dto/attach-modifier-group.dto';
 
@@ -16,6 +22,7 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { Role } from '../../../common/constants/roles';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import { ProductModifierGroupResponseDto } from './dto/product-modifier-group-response.dto';
 
 @ApiTags('Product Modifier Groups')
 @Controller('products/:productId/modifier-groups')
@@ -24,6 +31,7 @@ export class ProductModifierGroupsController {
   constructor(private readonly service: ProductModifierGroupsService) {}
 
   @ApiOperation({ summary: 'Assign group to product' })
+  @ApiCreatedResponse({ type: ProductModifierGroupResponseDto })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Post()
@@ -35,6 +43,7 @@ export class ProductModifierGroupsController {
   }
 
   @ApiOperation({ summary: 'List groups (and options) for product' })
+  @ApiOkResponse({ type: ProductModifierGroupResponseDto, isArray: true })
   @UseGuards(JwtAuthGuard)
   @Get()
   list(@Param('productId', ParseIntPipe) productId: number) {

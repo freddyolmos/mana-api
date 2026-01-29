@@ -9,7 +9,13 @@ import {
   Param,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ModifierGroupsService } from './modifier-groups.service';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -19,6 +25,7 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { Role } from '../../../common/constants/roles';
 import { QueryModifierGroupsDto } from './dto/query-modifier-groups.dto';
 import { UpdateModifierGroupDto } from './dto/update-modifier-group.dto';
+import { ModifierGroupResponseDto } from './dto/modifier-group-response.dto';
 
 @ApiTags('Modifier Groups')
 @Controller('modifier-groups')
@@ -27,6 +34,7 @@ export class ModifierGroupsController {
   constructor(private readonly modifiersGroupService: ModifierGroupsService) {}
 
   @ApiOperation({ summary: 'Create modifier group' })
+  @ApiCreatedResponse({ type: ModifierGroupResponseDto })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Post()
@@ -35,6 +43,7 @@ export class ModifierGroupsController {
   }
 
   @ApiOperation({ summary: 'List all modifiers group' })
+  @ApiOkResponse({ type: ModifierGroupResponseDto, isArray: true })
   @UseGuards(JwtAuthGuard)
   @Get()
   findAll(@Query() query: QueryModifierGroupsDto) {
@@ -42,6 +51,7 @@ export class ModifierGroupsController {
   }
 
   @ApiOperation({ summary: 'Get group by id (includ options)' })
+  @ApiOkResponse({ type: ModifierGroupResponseDto })
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -49,6 +59,7 @@ export class ModifierGroupsController {
   }
 
   @ApiOperation({ summary: 'Update group' })
+  @ApiOkResponse({ type: ModifierGroupResponseDto })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Patch(':id')
@@ -60,6 +71,7 @@ export class ModifierGroupsController {
   }
 
   @ApiOperation({ summary: 'Toggle activo/inactivo' })
+  @ApiOkResponse({ type: ModifierGroupResponseDto })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Patch(':id/toggle-active')
