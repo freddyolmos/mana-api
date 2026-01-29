@@ -10,7 +10,13 @@ import {
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AddOrderItemDto } from './dto/add-order-item.dto';
 
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -19,6 +25,8 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/constants/roles';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from 'src/common/types/user.types';
+import { OrderResponseDto } from './dto/order-response.dto';
+import { OrderItemResponseDto } from './dto/order-item-response.dto';
 
 @ApiTags('Orders')
 @ApiBearerAuth('access-token')
@@ -27,6 +35,7 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @ApiOperation({ summary: 'Create a new order' })
+  @ApiCreatedResponse({ type: OrderResponseDto })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Post()
@@ -35,6 +44,7 @@ export class OrdersController {
   }
 
   @ApiOperation({ summary: 'List complet order' })
+  @ApiOkResponse({ type: OrderResponseDto })
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   get(@Param('id', ParseIntPipe) id: number) {
@@ -42,6 +52,7 @@ export class OrdersController {
   }
 
   @ApiOperation({ summary: 'Add item to orden' })
+  @ApiCreatedResponse({ type: OrderItemResponseDto })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Post(':id/items')
@@ -61,6 +72,7 @@ export class OrdersController {
   }
 
   @ApiOperation({ summary: 'Send order to kitchen (change status)' })
+  @ApiOkResponse({ type: OrderResponseDto })
   @UseGuards(JwtAuthGuard)
   @Post(':id/send-to-kitchen')
   sendToKitchen(@Param('id', ParseIntPipe) id: number) {

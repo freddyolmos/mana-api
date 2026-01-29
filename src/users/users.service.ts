@@ -11,49 +11,49 @@ import { plainToInstance } from 'class-transformer';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly userSelect = {
+    id: true,
+    name: true,
+    email: true,
+    role: true,
+    isActive: true,
+    createdAt: true,
+    updatedAt: true,
+  };
+
+  private toResponse(user: unknown) {
+    return plainToInstance(UserResponseDto, user);
+  }
+
   async create(dto: CreateUserDto) {
     const hashedPassword = await hashPassword(dto.password);
-    return this.prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
         ...dto,
         password: hashedPassword,
       },
+      select: this.userSelect,
     });
+    return this.toResponse(user);
   }
 
   async findAll() {
     const users = await this.prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: this.userSelect,
       orderBy: {
         id: 'asc',
       },
     });
-    return users.map((user) => plainToInstance(UserResponseDto, user));
+    return users.map((user) => this.toResponse(user));
   }
 
   async findOne(id: number) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: this.userSelect,
     });
     if (!user) throw new NotFoundException('User not found');
-    return plainToInstance(UserResponseDto, user);
+    return this.toResponse(user);
   }
 
   async update(id: number, dto: UpdateUserDto) {
@@ -63,10 +63,19 @@ export class UsersService {
     if (dto.password) {
       data.password = await hashPassword(dto.password);
     }
-    return this.prisma.user.update({ where: { id }, data });
+    const user = await this.prisma.user.update({
+      where: { id },
+      data,
+      select: this.userSelect,
+    });
+    return this.toResponse(user);
   }
 
-  remove(id: number) {
-    return this.prisma.user.delete({ where: { id } });
+  async remove(id: number) {
+    const user = await this.prisma.user.delete({
+      where: { id },
+      select: this.userSelect,
+    });
+    return this.toResponse(user);
   }
 }

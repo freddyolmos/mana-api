@@ -8,6 +8,8 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateModifierGroupDto } from './dto/create-modifier-group.dto';
 import { QueryModifierGroupsDto } from './dto/query-modifier-groups.dto';
 import { UpdateModifierGroupDto } from './dto/update-modifier-group.dto';
+import { ModifierGroupResponseDto } from './dto/modifier-group-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 function validateGroupRules(input: {
   required: boolean;
@@ -35,6 +37,10 @@ function validateGroupRules(input: {
 export class ModifierGroupsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private toResponse(group: unknown) {
+    return plainToInstance(ModifierGroupResponseDto, group);
+  }
+
   async create(dto: CreateModifierGroupDto) {
     const existing = await this.prisma.modifierGroup.findUnique({
       where: { name: dto.name },
@@ -51,7 +57,7 @@ export class ModifierGroupsService {
 
     const fixed = validateGroupRules({ required, minSelect, maxSelect, multi });
 
-    return this.prisma.modifierGroup.create({
+    const group = await this.prisma.modifierGroup.create({
       data: {
         name: dto.name.trim(),
         required: fixed.required,
@@ -59,17 +65,20 @@ export class ModifierGroupsService {
         maxSelect: fixed.maxSelect,
         multi: fixed.multi,
       },
+      include: { options: true },
     });
+    return this.toResponse(group);
   }
 
   async findAll(query: QueryModifierGroupsDto) {
-    return this.prisma.modifierGroup.findMany({
+    const groups = await this.prisma.modifierGroup.findMany({
       where: {
         isActive: query.isActive,
       },
       orderBy: [{ name: 'asc' }],
       include: { options: true },
     });
+    return groups.map((group) => this.toResponse(group));
   }
 
   async findOne(id: number) {
@@ -78,7 +87,7 @@ export class ModifierGroupsService {
       include: { options: true },
     });
     if (!group) throw new NotFoundException('Grupo no encontrado.');
-    return group;
+    return this.toResponse(group);
   }
 
   async update(id: number, dto: UpdateModifierGroupDto) {
@@ -103,7 +112,7 @@ export class ModifierGroupsService {
 
     const fixed = validateGroupRules({ required, minSelect, maxSelect, multi });
 
-    return this.prisma.modifierGroup.update({
+    const group = await this.prisma.modifierGroup.update({
       where: { id },
       data: {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
@@ -113,7 +122,9 @@ export class ModifierGroupsService {
         multi: fixed.multi,
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
       },
+      include: { options: true },
     });
+    return this.toResponse(group);
   }
 
   async toggleActive(id: number) {
@@ -123,9 +134,11 @@ export class ModifierGroupsService {
     });
     if (!group) throw new NotFoundException('Grupo no encontrado.');
 
-    return this.prisma.modifierGroup.update({
+    const updated = await this.prisma.modifierGroup.update({
       where: { id },
       data: { isActive: !group.isActive },
+      include: { options: true },
     });
+    return this.toResponse(updated);
   }
 }

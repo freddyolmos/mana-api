@@ -7,10 +7,16 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { QueryProductsDto } from './dto/query-products.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ProductResponseDto } from './dto/product-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private toResponse(product: unknown) {
+    return plainToInstance(ProductResponseDto, product);
+  }
 
   async create(dto: CreateProductDto) {
     const category = await this.prisma.category.findUnique({
@@ -28,7 +34,7 @@ export class ProductsService {
         'Ya existe un producto con ese nombre en esa categoría.',
       );
 
-    return this.prisma.product.create({
+    const product = await this.prisma.product.create({
       data: {
         name: dto.name.trim(),
         description: dto.description?.trim(),
@@ -38,10 +44,11 @@ export class ProductsService {
       },
       include: { category: true },
     });
+    return this.toResponse(product);
   }
 
   async findAll(query: QueryProductsDto) {
-    return this.prisma.product.findMany({
+    const products = await this.prisma.product.findMany({
       where: {
         ...(query.categoryId ? { categoryId: query.categoryId } : {}),
         ...(query.isActive !== undefined ? { isActive: query.isActive } : {}),
@@ -57,6 +64,7 @@ export class ProductsService {
       orderBy: [{ categoryId: 'asc' }, { name: 'asc' }],
       include: { category: true },
     });
+    return products.map((product) => this.toResponse(product));
   }
 
   async findOne(id: number) {
@@ -65,7 +73,7 @@ export class ProductsService {
       include: { category: true },
     });
     if (!product) throw new NotFoundException('Product not found.');
-    return product;
+    return this.toResponse(product);
   }
 
   async update(id: number, dto: UpdateProductDto) {
@@ -110,7 +118,7 @@ export class ProductsService {
       if (!category) throw new NotFoundException('La categoría no existe.');
     }
 
-    return this.prisma.product.update({
+    const product = await this.prisma.product.update({
       where: { id },
       data: {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
@@ -126,6 +134,7 @@ export class ProductsService {
       },
       include: { category: true },
     });
+    return this.toResponse(product);
   }
 
   async toggleActive(id: number) {
@@ -135,10 +144,11 @@ export class ProductsService {
     });
     if (!product) throw new NotFoundException('Producto no encontrado.');
 
-    return this.prisma.product.update({
+    const updated = await this.prisma.product.update({
       where: { id },
       data: { isActive: !product.isActive },
       include: { category: true },
     });
+    return this.toResponse(updated);
   }
 }

@@ -7,19 +7,31 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { AddOrderItemDto } from './dto/add-order-item.dto';
 import { OrderStatus, Prisma } from '@prisma/client';
+import { OrderResponseDto } from './dto/order-response.dto';
+import { OrderItemResponseDto } from './dto/order-item-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private toOrderResponse(order: unknown) {
+    return plainToInstance(OrderResponseDto, order);
+  }
+
+  private toOrderItemResponse(item: unknown) {
+    return plainToInstance(OrderItemResponseDto, item);
+  }
+
   async create(dto: CreateOrderDto, createdById?: number) {
-    return this.prisma.order.create({
+    const order = await this.prisma.order.create({
       data: {
         type: dto.type,
         notes: dto.notes?.trim(),
         createdById: createdById ?? null,
       },
     });
+    return this.toOrderResponse(order);
   }
 
   async getById(orderId: number) {
@@ -38,7 +50,7 @@ export class OrdersService {
       },
     });
     if (!order) throw new NotFoundException('Orden no encontrada.');
-    return order;
+    return this.toOrderResponse(order);
   }
 
   async addItem(orderId: number, dto: AddOrderItemDto) {
@@ -165,6 +177,12 @@ export class OrdersService {
             create: modifierRows,
           },
         },
+        include: {
+          product: true,
+          modifiers: {
+            include: { group: true, option: true },
+          },
+        },
       });
 
       const totals = await tx.orderItem.aggregate({
@@ -182,7 +200,7 @@ export class OrdersService {
       return item;
     });
 
-    return result;
+    return this.toOrderItemResponse(result);
   }
 
   async removeItem(orderId: number, itemId: number) {
@@ -233,9 +251,10 @@ export class OrdersService {
       );
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { status: OrderStatus.SENT_TO_KITCHEN },
     });
+    return this.toOrderResponse(updated);
   }
 }
