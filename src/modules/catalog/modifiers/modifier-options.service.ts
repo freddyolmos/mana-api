@@ -7,16 +7,10 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateModifierOptionDto } from './dto/create-modifier-option.dto';
 import { UpdateModifierOptionDto } from './dto/update-modifier-option.dto';
-import { ModifierOptionResponseDto } from './dto/modifier-option-response.dto';
-import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class ModifierOptionsService {
   constructor(private readonly prisma: PrismaService) {}
-
-  private toResponse(option: unknown) {
-    return plainToInstance(ModifierOptionResponseDto, option);
-  }
 
   async create(dto: CreateModifierOptionDto) {
     const group = await this.prisma.modifierGroup.findUnique({
@@ -34,14 +28,13 @@ export class ModifierOptionsService {
         'There is already an option with that name in this group.',
       );
 
-    const option = await this.prisma.modifierOption.create({
+    return this.prisma.modifierOption.create({
       data: {
         groupId: dto.groupId,
         name: dto.name.trim(),
         priceDelta: new Prisma.Decimal(dto.priceDelta ?? 0),
       },
     });
-    return this.toResponse(option);
   }
 
   async update(id: number, dto: UpdateModifierOptionDto) {
@@ -66,7 +59,7 @@ export class ModifierOptionsService {
         );
     }
 
-    const option = await this.prisma.modifierOption.update({
+    return this.prisma.modifierOption.update({
       where: { id },
       data: {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
@@ -76,7 +69,6 @@ export class ModifierOptionsService {
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
       },
     });
-    return this.toResponse(option);
   }
 
   async toggleActive(id: number) {
@@ -86,10 +78,9 @@ export class ModifierOptionsService {
     });
     if (!opt) throw new NotFoundException('Option not found.');
 
-    const updated = await this.prisma.modifierOption.update({
+    return this.prisma.modifierOption.update({
       where: { id },
       data: { isActive: !opt.isActive },
     });
-    return this.toResponse(updated);
   }
 }

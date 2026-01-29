@@ -7,6 +7,7 @@ import {
   Param,
   ParseIntPipe,
   UseGuards,
+  Patch,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -18,6 +19,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AddOrderItemDto } from './dto/add-order-item.dto';
+import { UpdateOrderItemDto } from './dto/update-order-item.dto';
 
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
@@ -69,6 +71,19 @@ export class OrdersController {
     @Param('itemId', ParseIntPipe) itemId: number,
   ) {
     return this.ordersService.removeItem(id, itemId);
+  }
+
+  @ApiOperation({ summary: 'Update order item (qty/modifiers)' })
+  @ApiOkResponse({ type: OrderItemResponseDto })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @Patch(':id/items/:itemId')
+  updateItem(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() dto: UpdateOrderItemDto,
+  ) {
+    return this.ordersService.updateItem(id, itemId, dto);
   }
 
   @ApiOperation({ summary: 'Send order to kitchen (change status)' })

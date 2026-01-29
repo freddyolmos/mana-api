@@ -5,16 +5,10 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AttachModifierGroupDto } from './dto/attach-modifier-group.dto';
-import { ProductModifierGroupResponseDto } from './dto/product-modifier-group-response.dto';
-import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class ProductModifierGroupsService {
   constructor(private readonly prisma: PrismaService) {}
-
-  private toResponse(rel: unknown) {
-    return plainToInstance(ProductModifierGroupResponseDto, rel);
-  }
 
   async attach(productId: number, dto: AttachModifierGroupDto) {
     const product = await this.prisma.product.findUnique({
@@ -36,7 +30,7 @@ export class ProductModifierGroupsService {
     if (existing)
       throw new ConflictException('Ese grupo ya está asignado al producto.');
 
-    const relation = await this.prisma.productModifierGroup.create({
+    return this.prisma.productModifierGroup.create({
       data: {
         productId,
         groupId: dto.groupId,
@@ -46,7 +40,6 @@ export class ProductModifierGroupsService {
         group: { include: { options: true } },
       },
     });
-    return this.toResponse(relation);
   }
 
   async listForProduct(productId: number) {
@@ -56,7 +49,7 @@ export class ProductModifierGroupsService {
     });
     if (!product) throw new NotFoundException('Producto no encontrado.');
 
-    const relations = await this.prisma.productModifierGroup.findMany({
+    return this.prisma.productModifierGroup.findMany({
       where: { productId },
       orderBy: [{ sortOrder: 'asc' }],
       include: {
@@ -67,7 +60,6 @@ export class ProductModifierGroupsService {
         },
       },
     });
-    return relations.map((rel) => this.toResponse(rel));
   }
 
   async detach(productId: number, groupId: number) {
