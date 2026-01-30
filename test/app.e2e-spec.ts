@@ -22,4 +22,10 @@ describe('AppController (e2e)', () => {
       .expect(200)
       .expect('Hello World!');
   });
+
+  // TODO: Cuando se implementen validaciones de modificadores obligatorios,
+  // este caso debe fallar con 400 si falta el grupo requerido.
+  test.todo(
+    'rejects adding an order item when a required modifier group is missing',
+  );
 });
