@@ -105,12 +105,21 @@ export class KitchenService {
 
     if (dto.status === OrderItemStatus.READY) {
       const pendingCount = await this.prisma.orderItem.count({
-        where: { orderId, status: { not: OrderItemStatus.READY } },
+        where: {
+          orderId,
+          status: {
+            in: [OrderItemStatus.PENDING, OrderItemStatus.IN_PROGRESS],
+          },
+        },
       });
       if (pendingCount === 0) {
         await this.prisma.order.update({
           where: { id: orderId },
           data: { status: OrderStatus.READY },
+        });
+        this.kitchenGateway.broadcastOrderReady({
+          orderId,
+          status: OrderStatus.READY,
         });
       }
     }
@@ -120,5 +129,9 @@ export class KitchenService {
 
   broadcastOrderSent(payload: unknown) {
     this.kitchenGateway.broadcastOrderSent(payload);
+  }
+
+  broadcastOrderReady(payload: unknown) {
+    this.kitchenGateway.broadcastOrderReady(payload);
   }
 }

@@ -1,20 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { OrderStatus, OrderType } from '@prisma/client';
-import { OrderItemResponseDto } from './order-item-response.dto';
+import { TicketStatus } from '@prisma/client';
+import { TicketItemResponseDto } from './ticket-item-response.dto';
 
-export class OrderResponseDto {
+export class TicketResponseDto {
   @ApiProperty()
   id: number;
 
-  @ApiProperty({ enum: OrderType })
-  type: OrderType;
+  @ApiProperty()
+  orderId: number;
 
-  @ApiProperty({ enum: OrderStatus })
-  status: OrderStatus;
-
-  @ApiPropertyOptional()
-  notes?: string | null;
+  @ApiProperty({ enum: TicketStatus })
+  status: TicketStatus;
 
   @ApiProperty()
   subtotal: number;
@@ -22,15 +19,9 @@ export class OrderResponseDto {
   @ApiProperty()
   total: number;
 
-  @ApiPropertyOptional()
-  createdById?: number | null;
-
-  @ApiPropertyOptional()
-  tableId?: number | null;
-
-  @ApiPropertyOptional({ type: OrderItemResponseDto, isArray: true })
-  @Type(() => OrderItemResponseDto)
-  items?: OrderItemResponseDto[];
+  @ApiPropertyOptional({ type: TicketItemResponseDto, isArray: true })
+  @Type(() => TicketItemResponseDto)
+  items?: TicketItemResponseDto[];
 
   @ApiProperty({ example: '2026-01-27T18:30:00.000Z' })
   @Transform(({ value }: { value: Date | string }) =>
