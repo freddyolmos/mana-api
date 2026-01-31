@@ -102,4 +102,25 @@ export class OrdersController {
   markReady(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.markReady(id);
   }
+
+  @ApiOperation({ summary: 'Attach table to order' })
+  @ApiOkResponse({ type: OrderResponseDto })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CASHIER, Role.ADMIN)
+  @Patch(':id/attach-table/:tableId')
+  attachTable(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('tableId', ParseIntPipe) tableId: number,
+  ) {
+    return this.ordersService.attachTable(id, tableId);
+  }
+
+  @ApiOperation({ summary: 'Release table from order' })
+  @ApiOkResponse({ type: OrderResponseDto })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CASHIER, Role.ADMIN)
+  @Patch(':id/release-table')
+  releaseTable(@Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.releaseTable(id);
+  }
 }

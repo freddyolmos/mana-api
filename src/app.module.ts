@@ -10,6 +10,9 @@ import { ProductsModule } from './modules/catalog/products/products.module';
 import { ModifiersModule } from './modules/catalog/modifiers/modifiers.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { KitchenModule } from './modules/kitchen/kitchen.module';
+import { TicketsModule } from './modules/tickets/tickets.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { TablesModule } from './modules/tables/tables.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -26,6 +29,9 @@ import configuration from './config/configuration';
     ModifiersModule,
     OrdersModule,
     KitchenModule,
+    TicketsModule,
+    PaymentsModule,
+    TablesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

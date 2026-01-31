@@ -33,4 +33,8 @@ export class KitchenGateway {
   broadcastItemUpdated(payload: unknown) {
     this.server.to('kitchen').emit('order:item:updated', payload);
   }
+
+  broadcastOrderReady(payload: unknown) {
+    this.server.to('cashier').emit('order:ready', payload);
+  }
 }

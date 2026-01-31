@@ -7,7 +7,12 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { AddOrderItemDto } from './dto/add-order-item.dto';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
-import { OrderItemStatus, OrderStatus, Prisma } from '@prisma/client';
+import {
+  OrderItemStatus,
+  OrderStatus,
+  Prisma,
+  TableStatus,
+} from '@prisma/client';
 import { KitchenService } from '../kitchen/kitchen.service';
 
 @Injectable()
@@ -438,7 +443,10 @@ export class OrdersService {
     }
 
     const pendingCount = await this.prisma.orderItem.count({
-      where: { orderId, status: { not: OrderItemStatus.READY } },
+      where: {
+        orderId,
+        status: { in: [OrderItemStatus.PENDING, OrderItemStatus.IN_PROGRESS] },
+      },
     });
     if (pendingCount > 0) {
       throw new BadRequestException(
@@ -446,9 +454,83 @@ export class OrdersService {
       );
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { status: OrderStatus.READY },
+    });
+    this.kitchenService.broadcastOrderReady({
+      orderId,
+      status: OrderStatus.READY,
+    });
+    return updated;
+  }
+
+  async attachTable(orderId: number, tableId: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        select: { id: true, status: true, tableId: true },
+      });
+      if (!order) throw new NotFoundException('Orden no encontrada.');
+      if (
+        order.status === OrderStatus.CLOSED ||
+        order.status === OrderStatus.CANCELED
+      ) {
+        throw new BadRequestException(
+          'No puedes asignar mesa a una orden cerrada/cancelada.',
+        );
+      }
+      if (order.tableId) {
+        throw new BadRequestException('La orden ya tiene mesa asignada.');
+      }
+
+      const table = await tx.table.findUnique({
+        where: { id: tableId },
+        select: { id: true, status: true },
+      });
+      if (!table) throw new NotFoundException('Mesa no encontrada.');
+      if (table.status !== TableStatus.FREE) {
+        throw new BadRequestException('La mesa no está disponible.');
+      }
+
+      await tx.table.update({
+        where: { id: tableId },
+        data: { status: TableStatus.OCCUPIED },
+      });
+
+      return tx.order.update({
+        where: { id: orderId },
+        data: { tableId },
+      });
+    });
+  }
+
+  async releaseTable(orderId: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        select: { id: true, tableId: true },
+      });
+      if (!order) throw new NotFoundException('Orden no encontrada.');
+      if (!order.tableId) {
+        throw new BadRequestException('La orden no tiene mesa asignada.');
+      }
+
+      const tableId = order.tableId;
+
+      await tx.order.update({
+        where: { id: orderId },
+        data: { tableId: null },
+      });
+
+      await tx.table.update({
+        where: { id: tableId },
+        data: { status: TableStatus.FREE },
+      });
+
+      return tx.order.findUnique({
+        where: { id: orderId },
+      });
     });
   }
 }
