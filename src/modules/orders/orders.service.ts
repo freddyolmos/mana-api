@@ -7,7 +7,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { AddOrderItemDto } from './dto/add-order-item.dto';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { OrderItemStatus, OrderStatus, Prisma } from '@prisma/client';
 import { KitchenService } from '../kitchen/kitchen.service';
 
 @Injectable()
@@ -49,7 +49,6 @@ export class OrdersService {
   async addItem(orderId: number, dto: AddOrderItemDto) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      select: { id: true, status: true },
     });
     if (!order) throw new NotFoundException('Orden no encontrada.');
     if (order.status !== OrderStatus.OPEN) {
@@ -423,5 +422,33 @@ export class OrdersService {
     });
     this.kitchenService.broadcastOrderSent(orderDetail ?? updated);
     return updated;
+  }
+
+  async markReady(orderId: number) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, status: true },
+    });
+    if (!order) throw new NotFoundException('Orden no encontrada.');
+
+    if (order.status === OrderStatus.READY) return order;
+
+    if (order.status !== OrderStatus.SENT_TO_KITCHEN) {
+      throw new BadRequestException('La orden no está en cocina.');
+    }
+
+    const pendingCount = await this.prisma.orderItem.count({
+      where: { orderId, status: { not: OrderItemStatus.READY } },
+    });
+    if (pendingCount > 0) {
+      throw new BadRequestException(
+        'No puedes marcar READY: hay items pendientes.',
+      );
+    }
+
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { status: OrderStatus.READY },
+    });
   }
 }

@@ -27,6 +27,7 @@ enum OrderType {
 enum OrderStatus {
   OPEN
   SENT_TO_KITCHEN
+  READY
   CLOSED
   CANCELED
 }

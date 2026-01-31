@@ -93,4 +93,13 @@ export class OrdersController {
   sendToKitchen(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.sendToKitchen(id);
   }
+
+  @ApiOperation({ summary: 'Mark order as READY' })
+  @ApiOkResponse({ type: OrderResponseDto })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.KITCHEN, Role.ADMIN)
+  @Post(':id/mark-ready')
+  markReady(@Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.markReady(id);
+  }
 }

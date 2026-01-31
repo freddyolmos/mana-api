@@ -103,6 +103,18 @@ export class KitchenService {
       item: updated,
     });
 
+    if (dto.status === OrderItemStatus.READY) {
+      const pendingCount = await this.prisma.orderItem.count({
+        where: { orderId, status: { not: OrderItemStatus.READY } },
+      });
+      if (pendingCount === 0) {
+        await this.prisma.order.update({
+          where: { id: orderId },
+          data: { status: OrderStatus.READY },
+        });
+      }
+    }
+
     return updated;
   }
 
