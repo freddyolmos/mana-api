@@ -12,6 +12,8 @@ import { Role } from '../../common/constants/roles';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentResponseDto } from './dto/payment-response.dto';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../common/types/user.types';
 
 @ApiTags('Payments')
 @ApiBearerAuth('access-token')
@@ -24,7 +26,10 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Create a payment' })
   @ApiCreatedResponse({ type: PaymentResponseDto })
   @Post()
-  create(@Body() dto: CreatePaymentDto) {
-    return this.paymentsService.create(dto);
+  create(
+    @Body() dto: CreatePaymentDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.paymentsService.create(dto, user.userId);
   }
 }

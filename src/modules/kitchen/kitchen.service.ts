@@ -64,6 +64,7 @@ export class KitchenService {
     orderId: number,
     itemId: number,
     dto: UpdateKitchenItemDto,
+    userId?: number,
   ) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -89,42 +90,74 @@ export class KitchenService {
       );
     }
 
-    const updated = await this.prisma.orderItem.update({
-      where: { id: itemId },
-      data: { status: dto.status },
-      include: {
-        product: true,
-        modifiers: { include: { group: true, option: true } },
+    const prevStatus = item.status;
+    const { updatedItem, orderReady } = await this.prisma.$transaction(
+      async (tx) => {
+        const updatedItem = await tx.orderItem.update({
+          where: { id: itemId },
+          data: { status: dto.status },
+          include: {
+            product: true,
+            modifiers: { include: { group: true, option: true } },
+          },
+        });
+
+        await tx.orderEvent.create({
+          data: {
+            orderId,
+            type: 'ITEM_STATUS_CHANGED',
+            createdById: userId ?? null,
+            payload: {
+              itemId,
+              from: prevStatus,
+              to: dto.status,
+            },
+          },
+        });
+
+        let orderReady = false;
+        if (dto.status === OrderItemStatus.READY) {
+          const pendingCount = await tx.orderItem.count({
+            where: {
+              orderId,
+              status: {
+                in: [OrderItemStatus.PENDING, OrderItemStatus.IN_PROGRESS],
+              },
+            },
+          });
+          if (pendingCount === 0) {
+            await tx.order.update({
+              where: { id: orderId },
+              data: { status: OrderStatus.READY },
+            });
+            await tx.orderEvent.create({
+              data: {
+                orderId,
+                type: 'ORDER_READY',
+                createdById: userId ?? null,
+              },
+            });
+            orderReady = true;
+          }
+        }
+
+        return { updatedItem, orderReady };
       },
-    });
+    );
 
     this.kitchenGateway.broadcastItemUpdated({
       orderId,
-      item: updated,
+      item: updatedItem,
     });
 
-    if (dto.status === OrderItemStatus.READY) {
-      const pendingCount = await this.prisma.orderItem.count({
-        where: {
-          orderId,
-          status: {
-            in: [OrderItemStatus.PENDING, OrderItemStatus.IN_PROGRESS],
-          },
-        },
+    if (orderReady) {
+      this.kitchenGateway.broadcastOrderReady({
+        orderId,
+        status: OrderStatus.READY,
       });
-      if (pendingCount === 0) {
-        await this.prisma.order.update({
-          where: { id: orderId },
-          data: { status: OrderStatus.READY },
-        });
-        this.kitchenGateway.broadcastOrderReady({
-          orderId,
-          status: OrderStatus.READY,
-        });
-      }
     }
 
-    return updated;
+    return updatedItem;
   }
 
   broadcastOrderSent(payload: unknown) {

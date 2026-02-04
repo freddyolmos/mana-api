@@ -20,6 +20,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/constants/roles';
 import { TicketsService } from './tickets.service';
 import { TicketResponseDto } from './dto/ticket-response.dto';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../common/types/user.types';
 
 @ApiTags('Tickets')
 @ApiBearerAuth('access-token')
@@ -32,8 +34,11 @@ export class TicketsController {
   @ApiOperation({ summary: 'Create ticket from order' })
   @ApiCreatedResponse({ type: TicketResponseDto })
   @Post('from-order/:orderId')
-  createFromOrder(@Param('orderId', ParseIntPipe) orderId: number) {
-    return this.ticketsService.createFromOrder(orderId);
+  createFromOrder(
+    @Param('orderId', ParseIntPipe) orderId: number,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.ticketsService.createFromOrder(orderId, user.userId);
   }
 
   @ApiOperation({ summary: 'Get ticket by ID' })
@@ -46,14 +51,20 @@ export class TicketsController {
   @ApiOperation({ summary: 'Cancel ticket' })
   @ApiOkResponse({ type: TicketResponseDto })
   @Patch(':id/cancel')
-  cancel(@Param('id', ParseIntPipe) id: number) {
-    return this.ticketsService.cancel(id);
+  cancel(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.ticketsService.cancel(id, user.userId);
   }
 
   @ApiOperation({ summary: 'Close ticket (mark as PAID)' })
   @ApiOkResponse({ type: TicketResponseDto })
   @Post(':id/close')
-  close(@Param('id', ParseIntPipe) id: number) {
-    return this.ticketsService.close(id);
+  close(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.ticketsService.close(id, user.userId);
   }
 }

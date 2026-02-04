@@ -398,7 +398,7 @@ export class OrdersService {
     return updatedItem;
   }
 
-  async sendToKitchen(orderId: number) {
+  async sendToKitchen(orderId: number, userId?: number) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
@@ -409,9 +409,26 @@ export class OrdersService {
       );
     }
 
-    const updated = await this.prisma.order.update({
-      where: { id: orderId },
-      data: { status: OrderStatus.SENT_TO_KITCHEN },
+    const itemsCount = await this.prisma.orderItem.count({
+      where: { orderId },
+    });
+    if (itemsCount === 0) {
+      throw new BadRequestException('No puedes enviar una orden sin items.');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const orderUpdated = await tx.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.SENT_TO_KITCHEN },
+      });
+      await tx.orderEvent.create({
+        data: {
+          orderId,
+          type: 'ORDER_SENT_TO_KITCHEN',
+          createdById: userId ?? null,
+        },
+      });
+      return orderUpdated;
     });
     const orderDetail = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -429,7 +446,7 @@ export class OrdersService {
     return updated;
   }
 
-  async markReady(orderId: number) {
+  async markReady(orderId: number, userId?: number) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       select: { id: true, status: true },
@@ -454,9 +471,19 @@ export class OrdersService {
       );
     }
 
-    const updated = await this.prisma.order.update({
-      where: { id: orderId },
-      data: { status: OrderStatus.READY },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const orderUpdated = await tx.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.READY },
+      });
+      await tx.orderEvent.create({
+        data: {
+          orderId,
+          type: 'ORDER_READY',
+          createdById: userId ?? null,
+        },
+      });
+      return orderUpdated;
     });
     this.kitchenService.broadcastOrderReady({
       orderId,
@@ -465,7 +492,7 @@ export class OrdersService {
     return updated;
   }
 
-  async attachTable(orderId: number, tableId: number) {
+  async attachTable(orderId: number, tableId: number, userId?: number) {
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: orderId },
@@ -498,22 +525,39 @@ export class OrdersService {
         data: { status: TableStatus.OCCUPIED },
       });
 
-      return tx.order.update({
+      const updated = await tx.order.update({
         where: { id: orderId },
         data: { tableId },
       });
+      await tx.orderEvent.create({
+        data: {
+          orderId,
+          type: 'TABLE_ATTACHED',
+          createdById: userId ?? null,
+          payload: { tableId },
+        },
+      });
+      return updated;
     });
   }
 
-  async releaseTable(orderId: number) {
+  async releaseTable(orderId: number, userId?: number) {
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: orderId },
-        select: { id: true, tableId: true },
+        select: { id: true, tableId: true, status: true },
       });
       if (!order) throw new NotFoundException('Orden no encontrada.');
       if (!order.tableId) {
         throw new BadRequestException('La orden no tiene mesa asignada.');
+      }
+      if (
+        order.status !== OrderStatus.CLOSED &&
+        order.status !== OrderStatus.CANCELED
+      ) {
+        throw new BadRequestException(
+          'No puedes liberar mesa con orden activa.',
+        );
       }
 
       const tableId = order.tableId;
@@ -526,6 +570,15 @@ export class OrdersService {
       await tx.table.update({
         where: { id: tableId },
         data: { status: TableStatus.FREE },
+      });
+
+      await tx.orderEvent.create({
+        data: {
+          orderId,
+          type: 'TABLE_RELEASED',
+          createdById: userId ?? null,
+          payload: { tableId },
+        },
       });
 
       return tx.order.findUnique({

@@ -56,6 +56,17 @@ enum TableStatus {
   OCCUPIED
 }
 
+enum OrderEventType {
+  ORDER_SENT_TO_KITCHEN
+  ITEM_STATUS_CHANGED
+  ORDER_READY
+  TICKET_CREATED
+  PAYMENT_ADDED
+  TICKET_CLOSED
+  TABLE_ATTACHED
+  TABLE_RELEASED
+}
+
 model User {
   id       Int     @id @default(autoincrement())
   name     String
@@ -68,7 +79,10 @@ model User {
   refreshTokenHash String?
   refreshTokenExp  DateTime?
 
-  orders Order[]
+  orders             Order[]
+  createdTickets     Ticket[]     @relation("TicketCreatedBy")
+  createdPayments    Payment[]    @relation("PaymentCreatedBy")
+  createdOrderEvents OrderEvent[] @relation("OrderEventCreatedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -77,12 +91,12 @@ model User {
 // --- CATALOG MODEL ---
 
 model Category {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
+  id        Int     @id @default(autoincrement())
+  name      String  @unique
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
-  products  Product[]
+  products Product[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -91,15 +105,15 @@ model Category {
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   name        String
   description String?
   imageUrl    String?
-  price       Decimal  @db.Decimal(10, 2)
-  isActive    Boolean  @default(true)
+  price       Decimal @db.Decimal(10, 2)
+  isActive    Boolean @default(true)
 
-  categoryId  Int
-  category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
   modifierGroups ProductModifierGroup[]
 
@@ -108,24 +122,24 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([categoryId])
   @@unique([categoryId, name])
+  @@index([categoryId])
   @@map("products")
 }
 
 model ModifierGroup {
-  id        Int     @id @default(autoincrement())
-  name      String  @unique
+  id   Int    @id @default(autoincrement())
+  name String @unique
 
   required  Boolean @default(false)
   minSelect Int     @default(0)
   maxSelect Int     @default(1)
   multi     Boolean @default(false)
 
-  isActive  Boolean @default(true)
+  isActive Boolean @default(true)
 
-  options   ModifierOption[]
-  products  ProductModifierGroup[]
+  options  ModifierOption[]
+  products ProductModifierGroup[]
 
   modifiers OrderItemModifier[]
 
@@ -136,32 +150,32 @@ model ModifierGroup {
 }
 
 model ModifierOption {
-  id         Int           @id @default(autoincrement())
+  id         Int     @id @default(autoincrement())
   name       String
-  priceDelta Decimal       @db.Decimal(10, 2) @default(0.00)
-  isActive   Boolean       @default(true)
+  priceDelta Decimal @default(0.00) @db.Decimal(10, 2)
+  isActive   Boolean @default(true)
 
-  groupId    Int
-  group      ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId Int
+  group   ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   modifiers OrderItemModifier[]
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@index([groupId])
   @@unique([groupId, name])
+  @@index([groupId])
   @@map("modifier_options")
 }
 
 model ProductModifierGroup {
-  id        Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   productId Int
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  groupId   Int
-  group     ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId Int
+  group   ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   sortOrder Int @default(0)
 
@@ -173,23 +187,24 @@ model ProductModifierGroup {
 // --- ORDER MODEL ---
 
 model Order {
-  id        Int        @id @default(autoincrement())
-  type      OrderType
-  status    OrderStatus @default(OPEN)
+  id     Int         @id @default(autoincrement())
+  type   OrderType
+  status OrderStatus @default(OPEN)
 
-  notes     String?
+  notes String?
 
-  subtotal  Decimal     @db.Decimal(10, 2) @default(0.00)
-  total     Decimal     @db.Decimal(10, 2) @default(0.00)
+  subtotal Decimal @default(0.00) @db.Decimal(10, 2)
+  total    Decimal @default(0.00) @db.Decimal(10, 2)
 
   createdById Int?
-  createdBy   User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy   User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
-  tableId   Int?
-  table     Table?     @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  tableId Int?
+  table   Table? @relation(fields: [tableId], references: [id], onDelete: SetNull)
 
-  items     OrderItem[]
-  ticket    Ticket?
+  items  OrderItem[]
+  ticket Ticket?
+  events OrderEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -201,22 +216,22 @@ model Order {
 }
 
 model OrderItem {
-  id        Int            @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  orderId   Int
-  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   productId Int
-  product   Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
 
-  qty       Int
-  status    OrderItemStatus @default(PENDING)
-  notes     String?
+  qty    Int
+  status OrderItemStatus @default(PENDING)
+  notes  String?
 
   // snapshot
-  unitPrice Decimal        @db.Decimal(10, 2)
-  modifiersTotal Decimal   @db.Decimal(10, 2) @default(0.00)
-  lineTotal Decimal        @db.Decimal(10, 2) @default(0.00)
+  unitPrice      Decimal @db.Decimal(10, 2)
+  modifiersTotal Decimal @default(0.00) @db.Decimal(10, 2)
+  lineTotal      Decimal @default(0.00) @db.Decimal(10, 2)
 
   modifiers OrderItemModifier[]
 
@@ -229,32 +244,32 @@ model OrderItem {
 }
 
 model OrderItemModifier {
-  id          Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   orderItemId Int
   orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
-  groupId     Int
-  group       ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  groupId Int
+  group   ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
 
-  optionId    Int
-  option      ModifierOption @relation(fields: [optionId], references: [id], onDelete: Restrict)
+  optionId Int
+  option   ModifierOption @relation(fields: [optionId], references: [id], onDelete: Restrict)
 
   priceDeltaSnapshot Decimal @db.Decimal(10, 2)
 
+  @@unique([orderItemId, optionId])
   @@index([orderItemId])
   @@index([groupId])
   @@index([optionId])
-  @@unique([orderItemId, optionId])
   @@map("order_item_modifiers")
 }
 
 model Table {
-  id        Int        @id @default(autoincrement())
-  name      String     @unique
-  status    TableStatus @default(FREE)
+  id     Int         @id @default(autoincrement())
+  name   String      @unique
+  status TableStatus @default(FREE)
 
-  orders    Order[]
+  orders Order[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -264,40 +279,44 @@ model Table {
 }
 
 model Ticket {
-  id        Int         @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  orderId   Int         @unique
-  order     Order       @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  orderId Int   @unique
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
 
-  status    TicketStatus @default(OPEN)
+  createdById Int?
+  createdBy   User? @relation("TicketCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
-  subtotal  Decimal     @db.Decimal(10, 2)
-  total     Decimal     @db.Decimal(10, 2)
+  status TicketStatus @default(OPEN)
 
-  items     TicketItem[]
-  payments  Payment[]
+  subtotal Decimal @db.Decimal(10, 2)
+  total    Decimal @db.Decimal(10, 2)
+
+  items    TicketItem[]
+  payments Payment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status])
+  @@index([createdById])
   @@map("tickets")
 }
 
 model TicketItem {
-  id        Int        @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  ticketId  Int
-  ticket    Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId Int
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
-  productId Int?
+  productId           Int?
   productNameSnapshot String
 
-  qty       Int
-  unitPriceSnapshot  Decimal   @db.Decimal(10, 2)
-  modifiersSnapshot  Json?
-  modifiersTotalSnapshot Decimal @db.Decimal(10, 2) @default(0.00)
-  lineTotalSnapshot  Decimal   @db.Decimal(10, 2)
+  qty                    Int
+  unitPriceSnapshot      Decimal @db.Decimal(10, 2)
+  modifiersSnapshot      Json?
+  modifiersTotalSnapshot Decimal @default(0.00) @db.Decimal(10, 2)
+  lineTotalSnapshot      Decimal @db.Decimal(10, 2)
 
   createdAt DateTime @default(now())
 
@@ -307,17 +326,41 @@ model TicketItem {
 }
 
 model Payment {
-  id        Int         @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  ticketId  Int
-  ticket    Ticket      @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId Int
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
-  method    PaymentMethod
-  amount    Decimal     @db.Decimal(10, 2)
-  change    Decimal     @db.Decimal(10, 2) @default(0.00)
+  createdById Int?
+  createdBy   User? @relation("PaymentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  method PaymentMethod
+  amount Decimal       @db.Decimal(10, 2)
+  change Decimal       @default(0.00) @db.Decimal(10, 2)
 
   createdAt DateTime @default(now())
 
   @@index([ticketId])
+  @@index([createdById])
   @@map("payments")
+}
+
+model OrderEvent {
+  id Int @id @default(autoincrement())
+
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  type    OrderEventType
+  message String?
+  payload Json?
+
+  createdById Int?
+  createdBy   User? @relation("OrderEventCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([type])
+  @@map("order_events")
 }

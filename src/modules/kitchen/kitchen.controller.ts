@@ -23,6 +23,8 @@ import { QueryKitchenOrdersDto } from './dto/query-kitchen-orders.dto';
 import { UpdateKitchenItemDto } from './dto/update-kitchen-item.dto';
 import { OrderResponseDto } from '../orders/dto/order-response.dto';
 import { OrderItemResponseDto } from '../orders/dto/order-item-response.dto';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../common/types/user.types';
 
 @ApiTags('Kitchen')
 @ApiBearerAuth('access-token')
@@ -53,7 +55,13 @@ export class KitchenController {
     @Param('id', ParseIntPipe) id: number,
     @Param('itemId', ParseIntPipe) itemId: number,
     @Body() dto: UpdateKitchenItemDto,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.kitchenService.updateKitchenItemStatus(id, itemId, dto);
+    return this.kitchenService.updateKitchenItemStatus(
+      id,
+      itemId,
+      dto,
+      user.userId,
+    );
   }
 }

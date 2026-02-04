@@ -90,8 +90,11 @@ export class OrdersController {
   @ApiOkResponse({ type: OrderResponseDto })
   @UseGuards(JwtAuthGuard)
   @Post(':id/send-to-kitchen')
-  sendToKitchen(@Param('id', ParseIntPipe) id: number) {
-    return this.ordersService.sendToKitchen(id);
+  sendToKitchen(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.ordersService.sendToKitchen(id, user.userId);
   }
 
   @ApiOperation({ summary: 'Mark order as READY' })
@@ -99,8 +102,11 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.KITCHEN, Role.ADMIN)
   @Post(':id/mark-ready')
-  markReady(@Param('id', ParseIntPipe) id: number) {
-    return this.ordersService.markReady(id);
+  markReady(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.ordersService.markReady(id, user.userId);
   }
 
   @ApiOperation({ summary: 'Attach table to order' })
@@ -111,8 +117,9 @@ export class OrdersController {
   attachTable(
     @Param('id', ParseIntPipe) id: number,
     @Param('tableId', ParseIntPipe) tableId: number,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.ordersService.attachTable(id, tableId);
+    return this.ordersService.attachTable(id, tableId, user.userId);
   }
 
   @ApiOperation({ summary: 'Release table from order' })
@@ -120,7 +127,10 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.CASHIER, Role.ADMIN)
   @Patch(':id/release-table')
-  releaseTable(@Param('id', ParseIntPipe) id: number) {
-    return this.ordersService.releaseTable(id);
+  releaseTable(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.ordersService.releaseTable(id, user.userId);
   }
 }
