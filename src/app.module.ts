@@ -13,6 +13,7 @@ import { KitchenModule } from './modules/kitchen/kitchen.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { TablesModule } from './modules/tables/tables.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -32,6 +33,7 @@ import configuration from './config/configuration';
     TicketsModule,
     PaymentsModule,
     TablesModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
