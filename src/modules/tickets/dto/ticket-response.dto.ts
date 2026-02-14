@@ -10,6 +10,9 @@ export class TicketResponseDto {
   @ApiProperty()
   orderId: number;
 
+  @ApiPropertyOptional()
+  createdById?: number | null;
+
   @ApiProperty({ enum: TicketStatus })
   status: TicketStatus;
 

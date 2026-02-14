@@ -16,73 +16,97 @@ import {
 export class TicketsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createFromOrder(orderId: number) {
-    const existing = await this.prisma.ticket.findUnique({
-      where: { orderId },
-    });
-    if (existing) {
-      throw new ConflictException('Ticket ya existe para esta orden.');
-    }
+  async createFromOrder(orderId: number, userId?: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.ticket.findUnique({
+        where: { orderId },
+      });
+      if (existing) {
+        throw new ConflictException('Ticket ya existe para esta orden.');
+      }
 
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        items: {
-          orderBy: { id: 'asc' },
-          include: {
-            product: true,
-            modifiers: { include: { group: true, option: true } },
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        include: {
+          items: {
+            orderBy: { id: 'asc' },
+            include: {
+              product: true,
+              modifiers: { include: { group: true, option: true } },
+            },
           },
         },
-      },
-    });
-    if (!order) throw new NotFoundException('Orden no encontrada.');
+      });
+      if (!order) throw new NotFoundException('Orden no encontrada.');
 
-    if (
-      order.status !== OrderStatus.SENT_TO_KITCHEN &&
-      order.status !== OrderStatus.READY
-    ) {
-      throw new BadRequestException('La orden no está lista para ticket.');
-    }
+      if (
+        order.status !== OrderStatus.SENT_TO_KITCHEN &&
+        order.status !== OrderStatus.READY
+      ) {
+        throw new BadRequestException('La orden no está lista para ticket.');
+      }
 
-    const hasPending = order.items.some(
-      (item) =>
-        item.status === OrderItemStatus.PENDING ||
-        item.status === OrderItemStatus.IN_PROGRESS,
-    );
-    if (hasPending) {
-      throw new BadRequestException(
-        'No puedes generar ticket: hay items pendientes.',
+      const hasPending = order.items.some(
+        (item) =>
+          item.status === OrderItemStatus.PENDING ||
+          item.status === OrderItemStatus.IN_PROGRESS,
       );
-    }
-    if (order.items.length === 0) {
-      throw new BadRequestException('La orden no tiene items.');
-    }
+      if (hasPending) {
+        throw new BadRequestException(
+          'No puedes generar ticket: hay items pendientes.',
+        );
+      }
+      if (order.items.length === 0) {
+        throw new BadRequestException('La orden no tiene items.');
+      }
 
-    const itemsData = order.items.map((item) => ({
-      productId: item.productId,
-      productNameSnapshot: item.product.name,
-      qty: item.qty,
-      unitPriceSnapshot: item.unitPrice,
-      modifiersSnapshot: item.modifiers.map((modifier) => ({
-        groupId: modifier.groupId,
-        groupName: modifier.group.name,
-        optionId: modifier.optionId,
-        optionName: modifier.option.name,
-        priceDelta: Number(modifier.priceDeltaSnapshot),
-      })),
-      modifiersTotalSnapshot: item.modifiersTotal,
-      lineTotalSnapshot: item.lineTotal,
-    }));
+      const itemsData = order.items.map((item) => ({
+        productId: item.productId,
+        productNameSnapshot: item.product.name,
+        qty: item.qty,
+        unitPriceSnapshot: item.unitPrice,
+        modifiersSnapshot: item.modifiers.map((modifier) => ({
+          groupId: modifier.groupId,
+          groupName: modifier.group.name,
+          optionId: modifier.optionId,
+          optionName: modifier.option.name,
+          priceDelta: Number(modifier.priceDeltaSnapshot),
+        })),
+        modifiersTotalSnapshot: item.modifiersTotal,
+        lineTotalSnapshot: item.lineTotal,
+      }));
 
-    return this.prisma.ticket.create({
-      data: {
-        orderId: order.id,
-        subtotal: order.subtotal,
-        total: order.total,
-        items: { create: itemsData },
-      },
-      include: { items: true },
+      try {
+        const ticket = await tx.ticket.create({
+          data: {
+            orderId: order.id,
+            createdById: userId ?? null,
+            subtotal: order.subtotal,
+            total: order.total,
+            items: { create: itemsData },
+          },
+          include: { items: true },
+        });
+
+        await tx.orderEvent.create({
+          data: {
+            orderId,
+            type: 'TICKET_CREATED',
+            createdById: userId ?? null,
+            payload: { ticketId: ticket.id },
+          },
+        });
+
+        return ticket;
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          throw new ConflictException('Ticket ya existe para esta orden.');
+        }
+        throw error;
+      }
     });
   }
 
@@ -95,7 +119,8 @@ export class TicketsService {
     return ticket;
   }
 
-  async cancel(id: number) {
+  async cancel(id: number, _userId?: number) {
+    void _userId;
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
       include: { items: true },
@@ -113,7 +138,7 @@ export class TicketsService {
     });
   }
 
-  async close(id: number) {
+  async close(id: number, userId?: number) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
     });
@@ -123,18 +148,18 @@ export class TicketsService {
     }
     if (ticket.status === TicketStatus.PAID) return ticket;
 
-    const paidAgg = await this.prisma.payment.aggregate({
-      where: { ticketId: id },
-      _sum: { amount: true },
-    });
-    const paid = paidAgg._sum.amount ?? new Prisma.Decimal(0);
-    if (paid.lt(ticket.total)) {
-      throw new BadRequestException(
-        'Pagos insuficientes para cerrar el ticket.',
-      );
-    }
-
     const updated = await this.prisma.$transaction(async (tx) => {
+      const paidAgg = await tx.payment.aggregate({
+        where: { ticketId: id },
+        _sum: { amount: true },
+      });
+      const paid = paidAgg._sum.amount ?? new Prisma.Decimal(0);
+      if (paid.lt(ticket.total)) {
+        throw new BadRequestException(
+          'Pagos insuficientes para cerrar el ticket.',
+        );
+      }
+
       const updatedTicket = await tx.ticket.update({
         where: { id },
         data: { status: TicketStatus.PAID },
@@ -143,6 +168,14 @@ export class TicketsService {
       await tx.order.update({
         where: { id: ticket.orderId },
         data: { status: OrderStatus.CLOSED },
+      });
+      await tx.orderEvent.create({
+        data: {
+          orderId: ticket.orderId,
+          type: 'TICKET_CLOSED',
+          createdById: userId ?? null,
+          payload: { ticketId: id },
+        },
       });
       return updatedTicket;
     });

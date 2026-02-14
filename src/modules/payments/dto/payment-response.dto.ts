@@ -9,6 +9,9 @@ export class PaymentResponseDto {
   @ApiProperty()
   ticketId: number;
 
+  @ApiProperty()
+  createdById: number | null;
+
   @ApiProperty({ enum: PaymentMethod })
   method: PaymentMethod;
 
