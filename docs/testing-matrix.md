@@ -15,7 +15,7 @@ Definir una matriz de pruebas funcionales para validar:
 - Base URL: `http://localhost:3000/api`
 - Swagger: `http://localhost:3000/docs`
 - Prefijo global activo: `/api`
-- Nota de estatus: varios `POST` responden `201` por defecto en NestJS cuando no se define `@HttpCode(...)`.
+- Nota de estatus: los `POST` de `Auth` (`login`, `refresh`, `logout`) responden `200` por `@HttpCode(200)`; otros `POST` mantienen `201` por defecto.
 - Roles del sistema: `ADMIN`, `CASHIER`, `KITCHEN`
 - Estados de orden: `OPEN`, `SENT_TO_KITCHEN`, `READY`, `CLOSED`, `CANCELED`
 - Estados de item de orden: `PENDING`, `IN_PROGRESS`, `READY`, `CANCELED`

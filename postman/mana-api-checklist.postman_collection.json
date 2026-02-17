@@ -37,8 +37,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 201\", function () {",
-                  "  pm.response.to.have.status(201);",
+                  "pm.test(\"Status is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
                   "});",
                   "const j = pm.response.json();",
                   "pm.collectionVariables.set(\"token_admin\", j.accessToken);",
@@ -76,8 +76,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 201\", function () {",
-                  "  pm.response.to.have.status(201);",
+                  "pm.test(\"Status is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
                   "});",
                   "const j = pm.response.json();",
                   "pm.collectionVariables.set(\"token_cashier\", j.accessToken);",
@@ -115,8 +115,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 201\", function () {",
-                  "  pm.response.to.have.status(201);",
+                  "pm.test(\"Status is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
                   "});",
                   "const j = pm.response.json();",
                   "pm.collectionVariables.set(\"token_kitchen\", j.accessToken);",
@@ -925,8 +925,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 201\", function () {",
-                  "  pm.response.to.have.status(201);",
+                  "pm.test(\"Status is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
                   "});",
                   "const j = pm.response.json();",
                   "pm.collectionVariables.set(\"token_admin\", j.accessToken);",
@@ -996,8 +996,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 201\", function () {",
-                  "  pm.response.to.have.status(201);",
+                  "pm.test(\"Status is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
                   "});"
                 ]
               }

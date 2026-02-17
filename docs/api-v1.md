@@ -44,7 +44,7 @@ Codigos de error usados:
 - `404`: recurso no encontrado
 - `409`: conflicto (duplicado, estado no compatible)
 
-Nota: varios endpoints `POST` responden `201 Created` por comportamiento por defecto de NestJS cuando no se define `@HttpCode(...)`.
+Nota: `POST /auth/login`, `POST /auth/refresh` y `POST /auth/logout` responden `200` por `@HttpCode(200)`. Varios `POST` del resto de modulos responden `201` por comportamiento por defecto de NestJS cuando no se define `@HttpCode(...)`.
 
 ## 4. Enums del dominio
 
@@ -465,4 +465,3 @@ Documentacion complementaria:
 - Matriz de pruebas: `docs/testing-matrix.md`
 - Checklist Postman/Newman: `docs/postman-newman-checklist.md`
 - Coleccion Postman: `postman/mana-api-checklist.postman_collection.json`
-

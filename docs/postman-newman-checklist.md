@@ -2,7 +2,7 @@
 
 Este checklist está diseñado para ejecución manual en Postman o automatizada en Newman.
 
-Nota: en esta API, varios endpoints `POST` devuelven `201` (Created) porque no tienen `@HttpCode(...)`.
+Nota: `POST /auth/login`, `POST /auth/refresh` y `POST /auth/logout` devuelven `200` por `@HttpCode(200)`. Otros `POST` mantienen `201` si no se define `@HttpCode(...)`.
 
 ## Archivos listos para importar
 
@@ -26,15 +26,15 @@ Nota: en esta API, varios endpoints `POST` devuelven `201` (Created) porque no t
 ```text
 AUTH-001 | POST | /auth/login | PUBLIC | {"email":"<admin>","password":"<pwd>"} | 200 | accessToken y refreshToken presentes
 CAT-001 | POST | /categories | ADMIN | {"name":"RUN_CAT_01","sortOrder":0} | 201 | id numérico, name correcto
-PRD-001 | POST | /products | ADMIN | {"name":"RUN_PRD_01","price":100,"categoryId":"{{categoryId}}"} | 201 | id, price, category.id
+PRD-001 | POST | /products | ADMIN | {"name":"RUN_PRD_01","price":100,"categoryId":{{categoryId}}} | 201 | id, price, category.id
 ORD-001 | POST | /orders | ADMIN | {"type":"TAKEOUT"} | 201 | status OPEN
-ORD-002 | POST | /orders/{{orderId}}/items | ADMIN | {"productId":"{{productId}}","qty":1} | 201 | lineTotal > 0
-ORD-006 | POST | /orders/{{orderId}}/send-to-kitchen | ADMIN | - | 200 | status SENT_TO_KITCHEN
+ORD-002 | POST | /orders/{{orderId}}/items | ADMIN | {"productId":{{productId}},"qty":1} | 201 | lineTotal > 0
+ORD-006 | POST | /orders/{{orderId}}/send-to-kitchen | ADMIN | - | 201 | status SENT_TO_KITCHEN
 KIT-003A | PATCH | /kitchen/orders/{{orderId}}/items/{{orderItemId}} | KITCHEN | {"status":"IN_PROGRESS"} | 200 | status IN_PROGRESS
 KIT-003B | PATCH | /kitchen/orders/{{orderId}}/items/{{orderItemId}} | KITCHEN | {"status":"READY"} | 200 | status READY
 TIK-001 | POST | /tickets/from-order/{{orderId}} | CASHIER | - | 201 | id ticket, total > 0
-PAY-001 | POST | /payments | CASHIER | {"ticketId":"{{ticketId}}","method":"CASH","amount":"{{ticketTotal}}"} | 201 | payment creado
-TIK-004 | POST | /tickets/{{ticketId}}/close | CASHIER | - | 200 | ticket PAID
+PAY-001 | POST | /payments | CASHIER | {"ticketId":{{ticketId}},"method":"CASH","amount":{{ticketTotal}}} | 201 | payment creado
+TIK-004 | POST | /tickets/{{ticketId}}/close | CASHIER | - | 201 | ticket PAID
 ```
 
 ## Seguridad (AUTH / RBAC)
@@ -176,7 +176,7 @@ KIT-004 | PATCH | /kitchen/orders/{{orderId}}/items/{{orderItemId}} | KITCHEN | 
 TIK-001 | POST | /tickets/from-order/{{orderId}} | CASHIER | orden lista | 201 | ticket creado
 TIK-002 | POST | /tickets/from-order/{{orderId}} | CASHIER | ticket ya creado | 409 | conflict
 TIK-003 | GET | /tickets/{{ticketId}} | CASHIER | existente | 200 | id coincide
-TIK-004 | POST | /tickets/{{ticketId}}/close | CASHIER | pagos suficientes | 200 | ticket PAID, orden CLOSED
+TIK-004 | POST | /tickets/{{ticketId}}/close | CASHIER | pagos suficientes | 201 | ticket PAID, orden CLOSED
 TIK-005 | POST | /tickets/{{ticketId}}/close | CASHIER | pagos insuficientes | 400 | regla de negocio
 TIK-006 | PATCH | /tickets/{{ticketId}}/cancel | CASHIER | ticket OPEN | 200 | status CANCELED
 TIK-007 | PATCH | /tickets/{{ticketId}}/cancel | CASHIER | ticket PAID | 400 | no cancelable
@@ -185,7 +185,7 @@ TIK-007 | PATCH | /tickets/{{ticketId}}/cancel | CASHIER | ticket PAID | 400 | n
 ### Payments
 
 ```text
-PAY-001 | POST | /payments | CASHIER | {"ticketId":"{{ticketId}}","method":"CASH","amount":"{{ticketTotal}}"} | 201 | payment creado
+PAY-001 | POST | /payments | CASHIER | {"ticketId":{{ticketId}},"method":"CASH","amount":{{ticketTotal}}} | 201 | payment creado
 PAY-002 | POST | /payments | CASHIER | ticket inexistente | 404 | not found
 PAY-003 | POST | /payments | CASHIER | ticket no OPEN | 400 | regla de negocio
 PAY-004 | POST | /payments | CASHIER | CARD excede total pendiente | 400 | sobrepago no permitido
