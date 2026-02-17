@@ -57,6 +57,11 @@ $ pnpm run test:e2e
 $ pnpm run test:cov
 ```
 
+## QA Documentation
+
+- Test matrix by endpoint and business flow: `docs/testing-matrix.md`
+- Copyable Postman/Newman checklist: `docs/postman-newman-checklist.md`
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.

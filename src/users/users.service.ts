@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -25,16 +29,32 @@ export class UsersService {
     return plainToInstance(UserResponseDto, user);
   }
 
+  private mapPrismaError(error: unknown): never {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        throw new ConflictException('Ya existe un usuario con ese email.');
+      }
+      if (error.code === 'P2025') {
+        throw new NotFoundException('Usuario no encontrado.');
+      }
+    }
+    throw error;
+  }
+
   async create(dto: CreateUserDto) {
-    const hashedPassword = await hashPassword(dto.password);
-    const user = await this.prisma.user.create({
-      data: {
-        ...dto,
-        password: hashedPassword,
-      },
-      select: this.userSelect,
-    });
-    return this.toResponse(user);
+    try {
+      const hashedPassword = await hashPassword(dto.password);
+      const user = await this.prisma.user.create({
+        data: {
+          ...dto,
+          password: hashedPassword,
+        },
+        select: this.userSelect,
+      });
+      return this.toResponse(user);
+    } catch (error) {
+      this.mapPrismaError(error);
+    }
   }
 
   async findAll() {
@@ -57,25 +77,33 @@ export class UsersService {
   }
 
   async update(id: number, dto: UpdateUserDto) {
-    const data: Prisma.UserUpdateInput = {
-      ...dto,
-    };
-    if (dto.password) {
-      data.password = await hashPassword(dto.password);
+    try {
+      const data: Prisma.UserUpdateInput = {
+        ...dto,
+      };
+      if (dto.password) {
+        data.password = await hashPassword(dto.password);
+      }
+      const user = await this.prisma.user.update({
+        where: { id },
+        data,
+        select: this.userSelect,
+      });
+      return this.toResponse(user);
+    } catch (error) {
+      this.mapPrismaError(error);
     }
-    const user = await this.prisma.user.update({
-      where: { id },
-      data,
-      select: this.userSelect,
-    });
-    return this.toResponse(user);
   }
 
   async remove(id: number) {
-    const user = await this.prisma.user.delete({
-      where: { id },
-      select: this.userSelect,
-    });
-    return this.toResponse(user);
+    try {
+      const user = await this.prisma.user.delete({
+        where: { id },
+        select: this.userSelect,
+      });
+      return this.toResponse(user);
+    } catch (error) {
+      this.mapPrismaError(error);
+    }
   }
 }

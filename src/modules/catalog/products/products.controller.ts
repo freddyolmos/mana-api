@@ -43,6 +43,7 @@ export class ProductsController {
 
   @ApiOperation({ summary: 'List all products' })
   @ApiOkResponse({ type: ProductResponseDto, isArray: true })
+  @UseGuards(JwtAuthGuard)
   @Get()
   findAll(@Query() query: QueryProductsDto) {
     return this.productsService.findAll(query);
@@ -50,6 +51,7 @@ export class ProductsController {
 
   @ApiOperation({ summary: 'Get product by ID' })
   @ApiOkResponse({ type: ProductResponseDto })
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.findOne(id);
