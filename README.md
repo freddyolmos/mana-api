@@ -59,6 +59,7 @@ $ pnpm run test:cov
 
 ## QA Documentation
 
+- Full API v1 documentation: `docs/api-v1.md`
 - Test matrix by endpoint and business flow: `docs/testing-matrix.md`
 - Copyable Postman/Newman checklist: `docs/postman-newman-checklist.md`
 
