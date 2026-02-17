@@ -30,6 +30,12 @@ export class PaymentsService {
       const amount = new Prisma.Decimal(dto.amount);
       const newTotal = paid.add(amount);
 
+      if (dto.method !== PaymentMethod.CASH && newTotal.gt(ticket.total)) {
+        throw new BadRequestException(
+          'El pago excede el total pendiente para este ticket.',
+        );
+      }
+
       let change = new Prisma.Decimal(0);
       if (dto.method === PaymentMethod.CASH && newTotal.gt(ticket.total)) {
         change = newTotal.sub(ticket.total);

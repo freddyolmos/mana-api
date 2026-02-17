@@ -10,7 +10,7 @@ function toBool(value: unknown): boolean | undefined {
     if (v === 'true' || v === '1') return true;
     if (v === 'false' || v === '0') return false;
   }
-  return undefined;
+  return value as boolean;
 }
 
 export class QueryModifierGroupsDto {

@@ -10,13 +10,13 @@ function toBool(value: unknown): boolean | undefined {
     if (v === 'true' || v === '1') return true;
     if (v === 'false' || v === '0') return false;
   }
-  return undefined;
+  return value as boolean;
 }
 
 function toInt(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') return undefined;
   const n = Number(value);
-  return Number.isFinite(n) ? n : undefined;
+  return Number.isFinite(n) ? n : (value as number);
 }
 
 export class QueryProductsDto {
