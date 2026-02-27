@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateModifierGroupDto } from './dto/create-modifier-group.dto';
 import { QueryModifierGroupsDto } from './dto/query-modifier-groups.dto';
@@ -130,5 +131,50 @@ export class ModifierGroupsService {
       data: { isActive: !group.isActive },
       include: { options: true },
     });
+  }
+
+  async remove(id: number) {
+    const group = await this.prisma.modifierGroup.findUnique({
+      where: { id },
+      include: { options: true },
+    });
+    if (!group) throw new NotFoundException('Grupo no encontrado.');
+
+    const blockingReferences = await this.prisma.orderItemModifier.count({
+      where: {
+        groupId: id,
+        orderItem: {
+          order: {
+            status: {
+              in: [
+                OrderStatus.OPEN,
+                OrderStatus.SENT_TO_KITCHEN,
+                OrderStatus.READY,
+              ],
+            },
+          },
+        },
+      },
+    });
+    if (blockingReferences > 0) {
+      throw new ConflictException(
+        'No se puede eliminar el grupo porque está ligado a órdenes activas.',
+      );
+    }
+
+    try {
+      await this.prisma.modifierGroup.delete({ where: { id } });
+      return group;
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new ConflictException(
+          'No se puede eliminar el grupo por referencias relacionadas.',
+        );
+      }
+      throw error;
+    }
   }
 }

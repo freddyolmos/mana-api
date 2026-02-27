@@ -59,17 +59,31 @@ export class TicketsService {
       if (order.items.length === 0) {
         throw new BadRequestException('La orden no tiene items.');
       }
+      const missingProduct = order.items.find((item) => !item.product);
+      if (missingProduct) {
+        throw new BadRequestException(
+          'No se puede generar ticket: hay items sin producto asociado.',
+        );
+      }
+      const missingModifierRefs = order.items.some((item) =>
+        item.modifiers.some((modifier) => !modifier.group || !modifier.option),
+      );
+      if (missingModifierRefs) {
+        throw new BadRequestException(
+          'No se puede generar ticket: hay modificadores sin referencias asociadas.',
+        );
+      }
 
       const itemsData = order.items.map((item) => ({
         productId: item.productId,
-        productNameSnapshot: item.product.name,
+        productNameSnapshot: item.product!.name,
         qty: item.qty,
         unitPriceSnapshot: item.unitPrice,
         modifiersSnapshot: item.modifiers.map((modifier) => ({
           groupId: modifier.groupId,
-          groupName: modifier.group.name,
+          groupName: modifier.group!.name,
           optionId: modifier.optionId,
-          optionName: modifier.option.name,
+          optionName: modifier.option!.name,
           priceDelta: Number(modifier.priceDeltaSnapshot),
         })),
         modifiersTotalSnapshot: item.modifiersTotal,

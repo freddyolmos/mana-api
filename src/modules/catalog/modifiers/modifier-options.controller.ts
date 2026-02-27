@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Param,
   ParseIntPipe,
   Patch,
@@ -58,5 +59,14 @@ export class ModifierOptionsController {
   @Patch(':id/toggle-active')
   toggleActive(@Param('id', ParseIntPipe) id: number) {
     return this.service.toggleActive(id);
+  }
+
+  @ApiOperation({ summary: 'Delete modifier option' })
+  @ApiOkResponse({ type: ModifierOptionResponseDto })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.service.remove(id);
   }
 }

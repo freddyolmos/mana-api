@@ -221,8 +221,8 @@ model OrderItem {
   orderId Int
   order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  productId Int
-  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   qty    Int
   status OrderItemStatus @default(PENDING)
@@ -249,11 +249,11 @@ model OrderItemModifier {
   orderItemId Int
   orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
-  groupId Int
-  group   ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  groupId Int?
+  group   ModifierGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
-  optionId Int
-  option   ModifierOption @relation(fields: [optionId], references: [id], onDelete: Restrict)
+  optionId Int?
+  option   ModifierOption? @relation(fields: [optionId], references: [id], onDelete: SetNull)
 
   priceDeltaSnapshot Decimal @db.Decimal(10, 2)
 

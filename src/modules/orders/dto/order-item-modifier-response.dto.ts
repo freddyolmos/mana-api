@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ModifierGroupSummaryResponseDto } from '../../catalog/modifiers/dto/modifier-group-summary-response.dto';
 import { ModifierOptionResponseDto } from '../../catalog/modifiers/dto/modifier-option-response.dto';
@@ -10,20 +10,20 @@ export class OrderItemModifierResponseDto {
   @ApiProperty()
   orderItemId: number;
 
-  @ApiProperty()
-  groupId: number;
+  @ApiPropertyOptional()
+  groupId?: number | null;
 
-  @ApiProperty()
-  optionId: number;
+  @ApiPropertyOptional()
+  optionId?: number | null;
 
   @ApiProperty()
   priceDeltaSnapshot: number;
 
-  @ApiProperty({ type: ModifierGroupSummaryResponseDto })
+  @ApiPropertyOptional({ type: ModifierGroupSummaryResponseDto })
   @Type(() => ModifierGroupSummaryResponseDto)
-  group: ModifierGroupSummaryResponseDto;
+  group?: ModifierGroupSummaryResponseDto | null;
 
-  @ApiProperty({ type: ModifierOptionResponseDto })
+  @ApiPropertyOptional({ type: ModifierOptionResponseDto })
   @Type(() => ModifierOptionResponseDto)
-  option: ModifierOptionResponseDto;
+  option?: ModifierOptionResponseDto | null;
 }

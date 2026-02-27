@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -73,5 +74,14 @@ export class ProductsController {
   @Patch(':id/toggle-active')
   toggleActive(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.toggleActive(id);
+  }
+
+  @ApiOperation({ summary: 'Delete product' })
+  @ApiOkResponse({ type: ProductResponseDto })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.productsService.remove(id);
   }
 }

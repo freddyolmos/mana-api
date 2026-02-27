@@ -7,6 +7,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { AddOrderItemDto } from './dto/add-order-item.dto';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
+import { QueryOrdersDto } from './dto/query-orders.dto';
 import {
   OrderItemStatus,
   OrderStatus,
@@ -29,6 +30,18 @@ export class OrdersService {
         notes: dto.notes?.trim(),
         createdById: createdById ?? null,
       },
+    });
+  }
+
+  async findAll(query: QueryOrdersDto) {
+    return this.prisma.order.findMany({
+      where: {
+        ...(query.status ? { status: query.status } : {}),
+        ...(query.type ? { type: query.type } : {}),
+        ...(query.tableId ? { tableId: query.tableId } : {}),
+        ...(query.createdById ? { createdById: query.createdById } : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     });
   }
 
@@ -255,6 +268,11 @@ export class OrdersService {
     });
     if (!currentItem || currentItem.orderId !== orderId) {
       throw new NotFoundException('Item no encontrado en esta orden.');
+    }
+    if (!currentItem.productId) {
+      throw new BadRequestException(
+        'El item no tiene un producto activo asociado.',
+      );
     }
 
     const product = await this.prisma.product.findUnique({

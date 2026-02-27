@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { QueryProductsDto } from './dto/query-products.dto';
@@ -140,5 +141,46 @@ export class ProductsService {
       data: { isActive: !product.isActive },
       include: { category: true },
     });
+  }
+
+  async remove(id: number) {
+    await this.findOne(id);
+
+    const blockingOrderItems = await this.prisma.orderItem.count({
+      where: {
+        productId: id,
+        order: {
+          status: {
+            in: [
+              OrderStatus.OPEN,
+              OrderStatus.SENT_TO_KITCHEN,
+              OrderStatus.READY,
+            ],
+          },
+        },
+      },
+    });
+    if (blockingOrderItems > 0) {
+      throw new ConflictException(
+        'No se puede eliminar el producto porque está ligado a órdenes activas.',
+      );
+    }
+
+    try {
+      return await this.prisma.product.delete({
+        where: { id },
+        include: { category: true },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new ConflictException(
+          'No se puede eliminar el producto por referencias relacionadas.',
+        );
+      }
+      throw error;
+    }
   }
 }

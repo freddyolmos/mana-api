@@ -6,6 +6,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Query,
   UseGuards,
   Patch,
 } from '@nestjs/common';
@@ -29,6 +30,7 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from 'src/common/types/user.types';
 import { OrderResponseDto } from './dto/order-response.dto';
 import { OrderItemResponseDto } from './dto/order-item-response.dto';
+import { QueryOrdersDto } from './dto/query-orders.dto';
 
 @ApiTags('Orders')
 @ApiBearerAuth('access-token')
@@ -43,6 +45,14 @@ export class OrdersController {
   @Post()
   create(@Body() dto: CreateOrderDto, @CurrentUser() user: AuthenticatedUser) {
     return this.ordersService.create(dto, user.userId);
+  }
+
+  @ApiOperation({ summary: 'List orders' })
+  @ApiOkResponse({ type: OrderResponseDto, isArray: true })
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  findAll(@Query() query: QueryOrdersDto) {
+    return this.ordersService.findAll(query);
   }
 
   @ApiOperation({ summary: 'List complet order' })

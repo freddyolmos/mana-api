@@ -7,6 +7,7 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Delete,
 } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import {
@@ -76,5 +77,14 @@ export class CategoriesController {
   @Patch(':id/toggle-active')
   toggleActive(@Param('id', ParseIntPipe) id: number) {
     return this.categoriesService.toggleActive(id);
+  }
+
+  @ApiOperation({ summary: 'Delete category' })
+  @ApiOkResponse({ type: CategoryResponseDto })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.categoriesService.remove(id);
   }
 }

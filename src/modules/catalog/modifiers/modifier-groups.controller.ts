@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Post,
   UseGuards,
   Get,
@@ -77,5 +78,14 @@ export class ModifierGroupsController {
   @Patch(':id/toggle-active')
   toggleActive(@Param('id', ParseIntPipe) id: number) {
     return this.modifiersGroupService.toggleActive(id);
+  }
+
+  @ApiOperation({ summary: 'Delete modifier group and its options' })
+  @ApiOkResponse({ type: ModifierGroupResponseDto })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.modifiersGroupService.remove(id);
   }
 }

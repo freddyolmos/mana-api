@@ -11,8 +11,8 @@ export class OrderItemResponseDto {
   @ApiProperty()
   orderId: number;
 
-  @ApiProperty()
-  productId: number;
+  @ApiPropertyOptional()
+  productId?: number | null;
 
   @ApiProperty()
   qty: number;
@@ -32,9 +32,9 @@ export class OrderItemResponseDto {
   @ApiProperty()
   lineTotal: number;
 
-  @ApiProperty({ type: OrderProductResponseDto })
+  @ApiPropertyOptional({ type: OrderProductResponseDto })
   @Type(() => OrderProductResponseDto)
-  product: OrderProductResponseDto;
+  product?: OrderProductResponseDto | null;
 
   @ApiProperty({ type: OrderItemModifierResponseDto, isArray: true })
   @Type(() => OrderItemModifierResponseDto)

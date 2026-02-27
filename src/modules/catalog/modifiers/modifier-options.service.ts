@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateModifierOptionDto } from './dto/create-modifier-option.dto';
 import { UpdateModifierOptionDto } from './dto/update-modifier-option.dto';
@@ -82,5 +82,50 @@ export class ModifierOptionsService {
       where: { id },
       data: { isActive: !opt.isActive },
     });
+  }
+
+  async remove(id: number) {
+    const option = await this.prisma.modifierOption.findUnique({
+      where: { id },
+    });
+    if (!option) throw new NotFoundException('Option not found.');
+
+    const blockingReferences = await this.prisma.orderItemModifier.count({
+      where: {
+        optionId: id,
+        orderItem: {
+          order: {
+            status: {
+              in: [
+                OrderStatus.OPEN,
+                OrderStatus.SENT_TO_KITCHEN,
+                OrderStatus.READY,
+              ],
+            },
+          },
+        },
+      },
+    });
+    if (blockingReferences > 0) {
+      throw new ConflictException(
+        'No se puede eliminar la opción porque está ligada a órdenes activas.',
+      );
+    }
+
+    try {
+      return await this.prisma.modifierOption.delete({
+        where: { id },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new ConflictException(
+          'No se puede eliminar la opción por referencias relacionadas.',
+        );
+      }
+      throw error;
+    }
   }
 }

@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { QueryCategoriesDto } from './dto/query-categories.dto';
@@ -88,5 +89,26 @@ export class CategoriesService {
       data: { isActive: !category.isActive },
     });
     return this.toResponse(updated);
+  }
+
+  async remove(id: number) {
+    await this.findOne(id);
+
+    try {
+      const deleted = await this.prisma.category.delete({
+        where: { id },
+      });
+      return this.toResponse(deleted);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new ConflictException(
+          'No se puede eliminar la categoría porque tiene productos asociados.',
+        );
+      }
+      throw error;
+    }
   }
 }

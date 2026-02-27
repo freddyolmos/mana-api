@@ -174,6 +174,7 @@ Payload update (parcial):
 | `GET` | `/api/categories/:id` | JWT | Cualquiera autenticado |
 | `PATCH` | `/api/categories/:id` | JWT | ADMIN |
 | `PATCH` | `/api/categories/:id/toggle-active` | JWT | ADMIN |
+| `DELETE` | `/api/categories/:id` | JWT | ADMIN |
 
 Query:
 
@@ -197,12 +198,18 @@ Payload create:
 | `GET` | `/api/products/:id` | JWT | Cualquiera autenticado |
 | `PATCH` | `/api/products/:id` | JWT | ADMIN |
 | `PATCH` | `/api/products/:id/toggle-active` | JWT | ADMIN |
+| `DELETE` | `/api/products/:id` | JWT | ADMIN |
 
 Query list:
 
 - `categoryId` (int)
 - `isActive` (bool)
 - `q` (string, contains)
+
+Regla de borrado (`DELETE /api/products/:id`):
+
+- Si el producto está en órdenes activas (`OPEN`, `SENT_TO_KITCHEN`, `READY`) responde `409`.
+- Si solo aparece en órdenes finales (`CLOSED`, `CANCELED`), sí permite eliminarlo.
 
 Payload create:
 
@@ -225,6 +232,13 @@ Payload create:
 | `GET` | `/api/modifier-groups/:id` | JWT | Cualquiera autenticado |
 | `PATCH` | `/api/modifier-groups/:id` | JWT | ADMIN |
 | `PATCH` | `/api/modifier-groups/:id/toggle-active` | JWT | ADMIN |
+| `DELETE` | `/api/modifier-groups/:id` | JWT | ADMIN |
+
+Regla de borrado grupo:
+
+- Si el grupo está ligado a órdenes activas (`OPEN`, `SENT_TO_KITCHEN`, `READY`) responde `409`.
+- Si solo aparece en órdenes finales (`CLOSED`, `CANCELED`), sí permite eliminarlo.
+- Al eliminar el grupo, se eliminan también sus `modifier options`.
 
 Payload create:
 
@@ -245,6 +259,12 @@ Payload create:
 | `POST` | `/api/modifier-options` | JWT | ADMIN |
 | `PATCH` | `/api/modifier-options/:id` | JWT | ADMIN |
 | `PATCH` | `/api/modifier-options/:id/toggle-active` | JWT | ADMIN |
+| `DELETE` | `/api/modifier-options/:id` | JWT | ADMIN |
+
+Regla de borrado opción:
+
+- Si la opción está ligada a órdenes activas (`OPEN`, `SENT_TO_KITCHEN`, `READY`) responde `409`.
+- Si solo aparece en órdenes finales (`CLOSED`, `CANCELED`), sí permite eliminarla.
 
 Payload create:
 
@@ -300,6 +320,7 @@ Payload create:
 | Metodo | Ruta | Auth | Roles |
 |---|---|---|---|
 | `POST` | `/api/orders` | JWT | ADMIN |
+| `GET` | `/api/orders` | JWT | Cualquiera autenticado |
 | `GET` | `/api/orders/:id` | JWT | Cualquiera autenticado |
 | `POST` | `/api/orders/:id/items` | JWT | ADMIN |
 | `DELETE` | `/api/orders/:id/items/:itemId` | JWT | ADMIN |
@@ -308,6 +329,13 @@ Payload create:
 | `POST` | `/api/orders/:id/mark-ready` | JWT | KITCHEN, ADMIN |
 | `PATCH` | `/api/orders/:id/attach-table/:tableId` | JWT | CASHIER, ADMIN |
 | `PATCH` | `/api/orders/:id/release-table` | JWT | CASHIER, ADMIN |
+
+Query list (`GET /api/orders`):
+
+- `status`: `OPEN | SENT_TO_KITCHEN | READY | CLOSED | CANCELED`
+- `type`: `DINE_IN | TAKEOUT | DELIVERY`
+- `tableId` (int)
+- `createdById` (int)
 
 Payload create order:
 
